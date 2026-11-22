@@ -8,17 +8,17 @@
 import SwiftUI
 
 struct TopView: View {
-
+    @Environment(GameManager.self) var manager
     var body: some View {
 
         VStack {
             Spacer()
-Spacer()
+            Spacer()
             HStack(spacing: 0) {
 
                 VStack {
                     Text("1Up")
-                    Text("000000")
+                    Text(String(format: "%06d", manager.score))
                 }
                 .frame(maxWidth: .infinity)
 

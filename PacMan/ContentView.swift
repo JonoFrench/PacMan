@@ -25,6 +25,7 @@ struct ContentView: View {
                     manager.metrics = metrics
                     manager.tileSize = metrics.width / CGFloat(GameConstants.Screen.Width)
                     print("tilesize \(manager.tileSize)")
+
                 }
         }.background(Color(.black))
             .ignoresSafeArea()

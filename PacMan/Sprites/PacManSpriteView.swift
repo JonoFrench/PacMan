@@ -15,7 +15,7 @@ struct PacManSpriteView: View {
             Image(uiImage: pacMan.currentFrame)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: pacMan.frameSize.width, height: pacMan.frameSize.height)
+                .frame(width: pacMan.frameSize.width * 1.7, height: pacMan.frameSize.height * 1.7)
                 .position(pacMan.position)
                 .allowsHitTesting(false)
         }.onAppear {
@@ -23,8 +23,14 @@ struct PacManSpriteView: View {
     }
 }
 
-//#Preview {
-//    @Previewable @Environment(\.layoutMetrics) var metrics
-//    let sprite = PacManSprite(position: CGPoint(x: 0, y: 0),metrics: metrics)
-//    PacManSpriteView(pacMan: sprite)
-//}
+struct PacManLifeView: View {
+    @Environment(GameManager.self) var manager
+    var body: some View {
+        ZStack {
+            Image(uiImage: manager.pacManSprite!.lifeFrame)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 24, height: 24)
+        }
+    }
+}

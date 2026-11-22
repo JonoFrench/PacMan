@@ -30,16 +30,15 @@ struct ControlView: View {
                             case .second(true, nil): //This means the first Gesture completed
                                 state = true
                                 if manager.gameState == .playing {
-                                    manager.moveDirection = .up
+                                    manager.requestedDirection = .up
                                 }
                             default: break
                             }
                         })
                     .onChange(of: _isPressingUp) {oldValue, value in
                         if !value {
-                            if manager.gameState == .playing {                            manager.moveDirection = .stop
-                            } else if manager.gameState == .highscore {
-                                //manager.hiScores.letterUp()
+                            if manager.gameState == .playing {
+                                manager.requestedDirection = .up
                             }
                         }
                     }
@@ -57,13 +56,15 @@ struct ControlView: View {
                             switch value {
                             case .second(true, nil): //This means the first Gesture completed
                                 state = true
-                                manager.moveDirection = .left
+                                manager.requestedDirection = .left
                             default: break
                             }
                         })
                     .onChange(of: _isPressingLeft) {oldValue, value in
                         if !value {
-                            manager.moveDirection = .stop
+                            if manager.gameState == .playing {
+                                manager.requestedDirection = .left
+                            }
                         }
                     }
                 
@@ -72,24 +73,14 @@ struct ControlView: View {
                 if manager.gameState == .intro {
                     // Center Circle
                     Circle()
-                        .fill(Color.black)
+                        .fill(Color.red)
                         .frame(width: 30, height: 30)
-                        .overlay(alignment: .center, content: {
-                            //                            Text("\(manager.screenData.gameLevel)")
-                            //                                .foregroundStyle(.white)
-                            //                                .font(.custom("MrDo-Arcade", size: 8))
-                        })
-                        .onTapGesture(count: 2) {
-                            //                            print("Double tapped!")
-                            //manager.increaseLevel()
-                            //                            manager.objectWillChange.send()
-                        }
                 } else {
                     Circle()
-                        .fill(Color.black)
+                        .fill(Color.red)
                         .frame(width: 30, height: 30)
-                        .onTapGesture(count: 3) {
-                            print("Triple tapped!")
+                        .onTapGesture(count: 2) {
+                            print("Double tapped!")
                             manager.gameState = .intro
                         }
                 }
@@ -107,13 +98,15 @@ struct ControlView: View {
                             switch value {
                             case .second(true, nil): //This means the first Gesture completed
                                 state = true
-                                manager.moveDirection = .right
+                                manager.requestedDirection = .right
                             default: break
                             }
                         })
                     .onChange(of: _isPressingRight) {oldValue, value in
                         if !value {
-                            manager.moveDirection = .stop
+                            if manager.gameState == .playing {
+                                manager.requestedDirection = .right
+                            }
                         }
                     }
             }
@@ -132,7 +125,7 @@ struct ControlView: View {
                             case .second(true, nil): //This means the first Gesture completed
                                 state = true
                                 if manager.gameState == .playing {
-                                    manager.moveDirection = .down
+                                    manager.requestedDirection = .down
                                 }
                             default: break
                             }
@@ -140,9 +133,7 @@ struct ControlView: View {
                     .onChange(of: _isPressingDown) {oldValue, value in
                         if !value {
                             if manager.gameState == .playing {
-                                manager.moveDirection = .stop
-                            } else if manager.gameState == .highscore {
-                                //                                manager.hiScores.letterDown()
+                                manager.requestedDirection = .down
                             }
                         }
                     }

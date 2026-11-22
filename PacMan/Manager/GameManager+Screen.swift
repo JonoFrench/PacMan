@@ -17,7 +17,12 @@ extension GameManager {
         }
 
     }
-    
+    func loadFruit() {
+        for i in 0..<8 {
+            fruit.append(getTile(name: "Fruit", xPos: i,width: 16,height: 16)!)
+        }
+    }
+
     ///Get Image from sprite sheet - horizontal
     ///
     func getTile(name:String,xPos:Int,width:Int,height:Int) -> UIImage? {

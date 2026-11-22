@@ -23,6 +23,12 @@ struct GameView: View {
                     GhostView(ghost: ghost)
                 }
             }.frame(width:manager.metrics?.width,height: manager.tileSize * 31)
+            HStack {
+                LivesView()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                FruitView()
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
             ControlView()
         }
     }

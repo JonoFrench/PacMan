@@ -14,7 +14,7 @@ struct DotView: View {
         ZStack(alignment: .center) {
             VStack(spacing: 0) {
                 ForEach(0..<GameConstants.Screen.Height, id: \.self) { y in
-                    let characters = Array(manager.map[y])
+                    let characters = Array(manager.workingMap[y])
                     HStack(spacing: 0) {
                         ForEach(0..<GameConstants.Screen.Width, id: \.self) { x in
                             if characters[x] == "o" {

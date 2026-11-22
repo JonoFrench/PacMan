@@ -15,7 +15,8 @@ protocol Animatable {
 }
 
 protocol Moveable {
-    func move()
+//    func move()
+    func move(deltaTime dt: CGFloat)
     func setImages()
 }
 
@@ -43,6 +44,9 @@ class SwiftUISprite:ObservableObject {
     var moveCounter: Int = 0
     var moveSpeed: Int = 0
     var direction: Direction = .stop
+    
+    var oldX = 0
+    var oldY = 0
     
     init(position:CGPoint, frameSize: CGSize) {
         self.frameSize = frameSize
@@ -99,10 +103,89 @@ class SwiftUISprite:ObservableObject {
     }
 
     func positionForTile(x: Int, y: Int) -> CGPoint {
-
-        CGPoint(
+        oldX = x
+        oldY = y
+        return CGPoint(
             x: (CGFloat(x) + 0.5) * frameSize.width,
             y: (CGFloat(y) + 0.5) * frameSize.height
         )
+    }
+    
+    func mapPosition() -> (x: Int, y: Int) {
+        let half = frameSize.width / 2
+        var x = oldX
+        var y = oldY
+        if direction == .up  {
+            x = Int((position.x) / frameSize.width)
+            y = Int((position.y + half) / frameSize.height)
+        } else if direction == .down {
+            x = Int((position.x) / frameSize.width)
+            y = Int((position.y - half) / frameSize.height)
+        } else if direction == .left {
+            x = Int((position.x + half) / frameSize.width)
+            y = Int((position.y) / frameSize.height)
+        } else if direction == .right {
+            x = Int((position.x - half) / frameSize.width)
+            y = Int((position.y) / frameSize.height)
+        }
+        oldX = x
+        oldY = y
+        return (x, y)
+    }
+    
+    func mapPosition(for direction: Direction? = nil) -> (x: Int, y: Int) {
+
+        let direction = direction ?? self.direction
+
+        let half = frameSize.width / 2
+
+        var x = oldX
+        var y = oldY
+
+        if direction == .up {
+
+            x = Int(position.x / frameSize.width)
+            y = Int((position.y + half) / frameSize.height)
+
+        } else if direction == .down {
+
+            x = Int(position.x / frameSize.width)
+            y = Int((position.y - half) / frameSize.height)
+
+        } else if direction == .left {
+
+            x = Int((position.x + half) / frameSize.width)
+            y = Int(position.y / frameSize.height)
+
+        } else if direction == .right {
+
+            x = Int((position.x - half) / frameSize.width)
+            y = Int(position.y / frameSize.height)
+        }
+
+        return (x, y)
+    }
+    
+    func isAtTileCentre() -> Bool {
+
+        let tileWidth = frameSize.width
+        let tileHeight = frameSize.height
+
+        let centreX = ((position.x / tileWidth - 0.5).rounded() + 0.5) * tileWidth
+        let centreY = ((position.y / tileHeight - 0.5).rounded() + 0.5) * tileHeight
+
+        let tolerance: CGFloat = 2
+
+        return abs(position.x - centreX) < tolerance &&
+               abs(position.y - centreY) < tolerance
+    }
+    
+    func snapToTileCentre() {
+
+        let tileWidth = frameSize.width
+        let tileHeight = frameSize.height
+
+        position.x = ((position.x / tileWidth - 0.5).rounded() + 0.5) * tileWidth
+        position.y = ((position.y / tileHeight - 0.5).rounded() + 0.5) * tileHeight
     }
 }

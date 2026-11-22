@@ -24,6 +24,9 @@ public enum Direction {
     case left,right,up,down,stop
 }
 
+public enum Fruit:Int {
+    case cherry = 0,strawberry,orange,apple,grape,bug,bell,key
+}
 public enum GameConstants {
     
     public enum Game {
@@ -32,6 +35,7 @@ public enum GameConstants {
     public enum Screen {
         public static let Width = 28
         public static let Height = 31
+        public static let TunnelRow = 14
     }
 
     public enum Position {
@@ -48,7 +52,7 @@ public enum GameConstants {
     }
     
     public enum Animation {
-        public static let Sprite = 2
+        public static let Sprite = 8
     }
 
     public enum Distance {
@@ -81,4 +85,12 @@ public enum GameConstants {
         public static let AsteroidPoints = 150
         public static let MinePoints = 75
     }
+    
+    public enum Sound {
+        public static let effectsVolume:Float = 1.0
+        public static let backgroundVolume:Float = 1.0
+        public static let musicVolume:Float = 1.0
+    }
+
+
 }
