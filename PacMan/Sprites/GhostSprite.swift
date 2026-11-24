@@ -12,6 +12,9 @@ enum GhostState {
     case leavingHouse
     case wandering
     case chasing
+    case scared
+    case dead
+    case inHouse
 }
 
 final class GhostSprite:SwiftUISprite,Moveable,Animatable {
@@ -22,14 +25,24 @@ final class GhostSprite:SwiftUISprite,Moveable,Animatable {
     var rightFrames: [UIImage] = []
     var downFrames: [UIImage] = []
     var upFrames: [UIImage] = []
-    var ghostState:GhostState = .leavingHouse
-
+    var scaredFrames: [UIImage] = []
+    var deadFrames: [UIImage] = []
+    var ghostState:GhostState = .leavingHouse {
+        didSet {
+            animateCounter = 0
+            currentAnimationFrame = 0
+        }
+    }
+    var houseTimer: CGFloat = 0
+    let houseWaitDuration: CGFloat = 3.0
+    var flashing = false
+    
     init(xPos:Int, yPos:Int,tileSize:CGSize, ghostType:Ghosts) {
         ghost = ghostType
         super.init(xPos:xPos, yPos:yPos, frameSize:tileSize)
         setImages()
         animationSpeed = GameConstants.Animation.Sprite
-        moveSpeed = GameConstants.Speed.Sprite
+        moveSpeed = GameConstants.Speed.Ghost
         moveDistance = GameConstants.Distance.Sprite
         currentFrame = rightFrames[0]
         direction = .right
@@ -37,7 +50,7 @@ final class GhostSprite:SwiftUISprite,Moveable,Animatable {
     
     func move(deltaTime dt: CGFloat) {
         guard direction != .stop  else {return}
-        let md = moveDistance * 80 * dt
+        let md = moveDistance * moveSpeed * dt
         /// Here we now move our sprite. Each will have its own specific movement logic.
         if direction == .left {
             self.position.x -= md
@@ -50,7 +63,7 @@ final class GhostSprite:SwiftUISprite,Moveable,Animatable {
         }
     }
     
-    func setMoveSpeed(speed:Int) {
+    func setMoveSpeed(speed:CGFloat) {
         moveCounter = 0
         moveSpeed = speed
     }
@@ -65,66 +78,78 @@ final class GhostSprite:SwiftUISprite,Moveable,Animatable {
         animationSpeed = speed
     }
     
+    var flash = false
     func animate() {
         animateCounter += 1
         if animateCounter == animationSpeed {
+            
             animateCounter = 0
             if direction == .right {
-                currentFrame = rightFrames[currentAnimationFrame]
+                if ghostState == .scared {
+                    currentFrame = scaredFrames[!flash ? currentAnimationFrame : currentAnimationFrame + 2]
+                } else if ghostState == .dead {
+                    currentFrame = deadFrames[0]
+                } else {
+                    currentFrame = rightFrames[currentAnimationFrame]
+                }
             } else if direction == .left {
-                currentFrame = leftFrames[currentAnimationFrame]
+                if ghostState == .scared {
+                    currentFrame = scaredFrames[!flash ? currentAnimationFrame : currentAnimationFrame + 2]
+                } else if ghostState == .dead {
+                    currentFrame = deadFrames[1]
+                } else {
+                    currentFrame = leftFrames[currentAnimationFrame]
+                }
             } else if direction == .up {
-                currentFrame = upFrames[currentAnimationFrame]
+                if ghostState == .scared {
+                    currentFrame = scaredFrames[!flash ? currentAnimationFrame : currentAnimationFrame + 2]
+                } else if ghostState == .dead {
+                    currentFrame = deadFrames[2]
+                } else {
+                    currentFrame = upFrames[currentAnimationFrame]
+                }
             } else if direction == .down {
-                currentFrame = downFrames[currentAnimationFrame]
+                if ghostState == .scared {
+                    currentFrame = scaredFrames[!flash ? currentAnimationFrame : currentAnimationFrame + 2]
+                } else if ghostState == .dead {
+                    currentFrame = deadFrames[3]
+                } else {
+                    currentFrame = downFrames[currentAnimationFrame]
+                }
             }
             currentAnimationFrame += 1
              ///Loop back around
-             if currentAnimationFrame == 2 {
-                 currentAnimationFrame = 0
-             }
-
+            if ghostState == .scared {
+                if currentAnimationFrame == 2 {
+                    currentAnimationFrame = 0
+                    if flashing { flash.toggle() }
+                }
+            } else {
+                if currentAnimationFrame == 2 {
+                    currentAnimationFrame = 0
+                }
+            }
         }
     }
-//    func animate() {
-//        animateCounter += 1
-//        if animateCounter == animationSpeed {
-//            animateCounter = 0
-//            currentFrame = frames[currentAnimationFrame]
-//           currentAnimationFrame += 1
-//            ///Loop back around
-//            if currentAnimationFrame == frames.count {
-//                currentAnimationFrame = 0
-//            }
-//
-//            
-//            if direction == .right {
-//            } else if direction == .left {
-//                currentFrame = frames[currentAnimationFrame]
-//                currentAnimationFrame -= 1
-//                ///Loop back around
-//                if currentAnimationFrame == -1 {
-//                    currentAnimationFrame = frames.count - 1
-//                }
-//            } else if direction == .left {
-//                currentFrame = frames[currentAnimationFrame]
-//                currentAnimationFrame -= 1
-//                ///Loop back around
-//                if currentAnimationFrame == -1 {
-//                    currentAnimationFrame = frames.count - 1
-//                }
-//            }
-//        }
-//    }
+
 
     func setImages() {
+        rightFrames.removeAll()
+        leftFrames.removeAll()
+        upFrames.removeAll()
+        downFrames.removeAll()
+        scaredFrames.removeAll()
+        deadFrames.removeAll()
         for i in 0..<2 {
             rightFrames.append(getTile(name: "Ghosts", xPos: i,yPos: ghost.rawValue,width: 16,height: 16)!)
             leftFrames.append(getTile(name: "Ghosts", xPos: i + 2,yPos: ghost.rawValue,width: 16,height: 16)!)
             upFrames.append(getTile(name: "Ghosts", xPos: i + 4,yPos: ghost.rawValue,width: 16,height: 16)!)
             downFrames.append(getTile(name: "Ghosts", xPos: i + 6,yPos: ghost.rawValue,width: 16,height: 16)!)
-
-
+        }
+        
+        for i in 0..<4 {
+            scaredFrames.append(getTile(name: "DeadGhosts", xPos: i,yPos: 0,width: 16,height: 16)!)
+            deadFrames.append(getTile(name: "DeadGhosts", xPos: i,yPos: 1,width: 16,height: 16)!)
         }
     }
 }

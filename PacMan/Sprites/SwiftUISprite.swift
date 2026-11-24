@@ -42,7 +42,7 @@ class SwiftUISprite:ObservableObject {
 ///Movement
     var moveDistance:CGFloat = 0.0
     var moveCounter: Int = 0
-    var moveSpeed: Int = 0
+    var moveSpeed: CGFloat = 0.0
     var direction: Direction = .stop
     
     var oldX = 0

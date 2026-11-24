@@ -84,7 +84,7 @@ struct IntroView: View {
             Spacer()
             
             Button(action: {
-                manager.start()
+                manager.reset()
             }) {
                 Text("Play")
                     .font(.custom("Emulogic", size: 12))

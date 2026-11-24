@@ -17,14 +17,14 @@ public enum JoyPad {
 }
 
 public enum GameState {
-    case intro,playing,gameover,highscore
+    case intro,starting,starting2,playing,caught,gameover,highscore
 }
 
 public enum Direction {
     case left,right,up,down,stop
 }
 
-public enum Fruit:Int {
+public enum Fruit:Int, CaseIterable {
     case cherry = 0,strawberry,orange,apple,grape,bug,bell,key
 }
 public enum GameConstants {
@@ -45,10 +45,14 @@ public enum GameConstants {
     
     public enum Time {
         public static let Sprite = 0.5
+        public static let ShowFruit = 30
+        public static let ShowScared = 30
     }
     ///Higher speed = slower
     public enum Speed {
-        public static let Sprite = 2
+        public static let PacMan = 100.0
+        public static let Ghost = 80.0
+
     }
     
     public enum Animation {
@@ -76,13 +80,15 @@ public enum GameConstants {
     }
     
     public enum Delay {
-        public static let Start = 3.5
+        public static let Start = 3.0
+        public static let Start2 = 1.5
+        public static let Caught = 3.5
         public static let GameOver = 5.0
     }
     
     public enum Score {
-        public static let Sprite = 100
-        public static let AsteroidPoints = 150
+        public static let Spot = 50
+        public static let Pill = 10
         public static let MinePoints = 75
     }
     

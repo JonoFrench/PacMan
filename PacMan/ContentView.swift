@@ -15,7 +15,7 @@ struct ContentView: View {
             ZStack {
                 if manager.gameState == .intro {
                     IntroView()
-                }else if manager.gameState == .playing {
+                }else if manager.gameState == .playing || manager.gameState == .starting || manager.gameState == .starting2 || manager.gameState == .caught {
                     GameView()
                 }else if manager.gameState == .gameover {
                     GameOverView()

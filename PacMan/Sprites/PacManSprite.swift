@@ -10,30 +10,30 @@ import SwiftUI
 
 final class PacManSprite:SwiftUISprite,Moveable,Animatable {
 
+    var deadFrames: [UIImage] = []
     var leftFrames: [UIImage] = []
     var rightFrames: [UIImage] = []
     var downFrames: [UIImage] = []
     var upFrames: [UIImage] = []
     var lastDirection:Direction = .stop
     var lifeFrame:UIImage = UIImage()
+    var caught = false
     
     init(xPos:Int, yPos:Int,tileSize:CGSize) {
         super.init(xPos:xPos, yPos:yPos, frameSize:tileSize)
         
         setImages()
         animationSpeed = GameConstants.Animation.Sprite
-        moveSpeed = GameConstants.Speed.Sprite
+        moveSpeed = GameConstants.Speed.PacMan
         moveDistance = GameConstants.Distance.Sprite
         currentFrame = rightFrames[1]
         direction = .stop
         lifeFrame = leftFrames[1]
     }
     
-    
-    
     func move(deltaTime dt: CGFloat) {
         guard direction != .stop  else {return}
-        let md = moveDistance * 100 * dt
+        let md = moveDistance * moveSpeed * dt
 //        print("delta time \(dt) movedistance \(md)")
         /// Here we now move our sprite. Each will have its own specific movement logic.
         if direction == .left {
@@ -106,30 +106,7 @@ final class PacManSprite:SwiftUISprite,Moveable,Animatable {
         }
     }
     
-//    func isAligned(for direction: Direction) -> Bool {
-//
-//        let tileWidth = frameSize.width
-//        let tileHeight = frameSize.height
-//
-//        let centreX = (floor(position.x / tileWidth) + 0.5) * tileWidth
-//        let centreY = (floor(position.y / tileHeight) + 0.5) * tileHeight
-//
-//        let tolerance: CGFloat = 2
-//
-//        switch direction {
-//
-//        case .up, .down:
-//            return abs(position.x - centreX) < tolerance
-//
-//        case .left, .right:
-//            return abs(position.y - centreY) < tolerance
-//
-//        case .stop:
-//            return false
-//        }
-//    }
-    
-    func setMoveSpeed(speed:Int) {
+    func setMoveSpeed(speed:CGFloat) {
         moveCounter = 0
         moveSpeed = speed
     }
@@ -147,6 +124,12 @@ final class PacManSprite:SwiftUISprite,Moveable,Animatable {
     func animate() {
         animateCounter += 1
         if animateCounter == animationSpeed {
+            animateCounter = 0
+
+            if caught {
+                animateDead()
+                return
+            }
             var aniDir = lastDirection
             if direction != .stop {
                 lastDirection = direction
@@ -170,6 +153,14 @@ final class PacManSprite:SwiftUISprite,Moveable,Animatable {
 
         }
     }
+    func animateDead() {
+        currentFrame = deadFrames[currentAnimationFrame]
+        currentAnimationFrame += 1
+        if currentAnimationFrame == 11 {
+            currentAnimationFrame = 10
+        }
+
+    }
 
     func setImages() {
         for x in 0..<3 {
@@ -183,6 +174,9 @@ final class PacManSprite:SwiftUISprite,Moveable,Animatable {
         }
         for x in 0..<3 {
             downFrames.append(getTile(name: "PacMan", xPos: x,yPos: 3,width: 16,height: 16)!)
+        }
+        for x in 0..<11 {
+            deadFrames.append(getTile(name: "DeadPacMan", xPos: x,width: 16,height: 16)!)
         }
     }
     
