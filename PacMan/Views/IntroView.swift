@@ -10,12 +10,14 @@ import SwiftUI
 struct IntroView: View {
     @Environment(GameManager.self) var manager
     @Environment(\.layoutMetrics) private var metrics
-    let yesno: (Bool) -> String = { b in b ? "Yes" : "No" }
+    @State private var visibleItems = 0
+    @State private var showNextAnimation = false
     
-    let blinky = GhostSprite(xPos: 14, yPos: 11, tileSize: CGSize(width: 30, height: 30), ghostType: .Blinky)
-    let clyde = GhostSprite(xPos: 12, yPos: 14, tileSize: CGSize(width: 30, height: 30), ghostType: .Clyde)
-    let inky = GhostSprite(xPos: 14, yPos: 14, tileSize: CGSize(width: 30, height: 30), ghostType: .Inky)
-    let pinky = GhostSprite(xPos: 16, yPos: 14, tileSize: CGSize(width: 30, height: 30), ghostType: .Pinky)
+    @State var blinky = GhostSprite(xPos: 14, yPos: 11, tileSize: CGSize(width: 30, height: 30), gameSpeed: 0.0, ghostType: .Blinky)
+    @State var clyde = GhostSprite(xPos: 12, yPos: 14, tileSize: CGSize(width: 30, height: 30), gameSpeed: 0.0,ghostType: .Clyde)
+    @State var inky = GhostSprite(xPos: 14, yPos: 14, tileSize: CGSize(width: 30, height: 30), gameSpeed: 0.0,ghostType: .Inky)
+    @State var pinky = GhostSprite(xPos: 16, yPos: 14, tileSize: CGSize(width: 30, height: 30), gameSpeed: 0.0,ghostType: .Pinky)
+    @State private var introTask: Task<Void, Never>?
     
     var body: some View {
         //        ZStack {
@@ -28,66 +30,97 @@ struct IntroView: View {
                 .aspectRatio(contentMode: .fit)
             Spacer()
             Text("Character / Nickname")
-                .font(.custom("Emulogic", size: 12))
+                .font(.custom("Emulogic", size: metrics.isPad ? 24 : 12))
                 .foregroundStyle(Color.gray)
                 .multilineTextAlignment(.center)
             Spacer()
             VStack(alignment: .leading, spacing: 8) {
-
+                
                 HStack {
                     staticGhostView(ghost: blinky)
-                        .frame(width: 30, height: 30)
-
-                    Text("- SHADOW \"BLINKY\"")
+                        .frame(width: metrics.isPad ? 60 : 30, height: metrics.isPad ? 60 : 30)
+                        .opacity(visibleItems >= 1 ? 1 : 0)
+                    Text("- SHADOW ")
                         .foregroundStyle(.red)
+                        .opacity(visibleItems >= 2 ? 1 : 0)
+                    Text("\"BLINKY\"")
+                        .foregroundStyle(.red)
+                        .opacity(visibleItems >= 3 ? 1 : 0)
                 }
-
+                
                 HStack {
                     staticGhostView(ghost: pinky)
-                        .frame(width: 30, height: 30)
-
-                    Text("- SPEEDY \"PINKY\"")
-                        .foregroundStyle(.pink)
+                        .frame(width: metrics.isPad ? 60 : 30, height: metrics.isPad ? 60 : 30)
+                        .opacity(visibleItems >= 4 ? 1 : 0)
+                    Text("- SPEEDY ")
+                        .foregroundStyle(.pinky)
+                        .opacity(visibleItems >= 5 ? 1 : 0)
+                    Text("\"PINKY\"")
+                        .foregroundStyle(.pinky)
+                        .opacity(visibleItems >= 6 ? 1 : 0)
                 }
-
+                
                 HStack {
                     staticGhostView(ghost: inky)
-                        .frame(width: 30, height: 30)
-
-                    Text("- BASHFUL \"INKY\"")
+                        .frame(width: metrics.isPad ? 60 : 30, height: metrics.isPad ? 60 : 30)
+                       .opacity(visibleItems >= 7 ? 1 : 0)
+                    Text("- BASHFUL ")
                         .foregroundStyle(.cyan)
+                        .opacity(visibleItems >= 8 ? 1 : 0)
+                    Text("\"INKY\"")
+                        .foregroundStyle(.cyan)
+                        .opacity(visibleItems >= 9 ? 1 : 0)
                 }
-
+                
                 HStack {
                     staticGhostView(ghost: clyde)
-                        .frame(width: 30, height: 30)
-
-                    Text("- POKEY \"CLYDE\"")
-                        .foregroundStyle(.orange)
+                        .frame(width: metrics.isPad ? 60 : 30, height: metrics.isPad ? 60 : 30)
+                        .opacity(visibleItems >= 10 ? 1 : 0)
+                    Text("- POKEY ")
+                        .foregroundStyle(.pokey)
+                        .opacity(visibleItems >= 11 ? 1 : 0)
+                    Text("\"CLYDE\"")
+                        .foregroundStyle(.pokey)
+                        .opacity(visibleItems >= 12 ? 1 : 0)
                 }
             }
-            .font(.custom("Emulogic", size: 12))
+            .font(.custom("Emulogic", size: metrics.isPad ? 24 : 12))
+            
             Spacer()
-            Text("10 pts")
-                .font(.custom("Emulogic", size: 12))
-                .foregroundStyle(Color.gray)
-                .multilineTextAlignment(.center)
-            Text("50 pts")
-                .font(.custom("Emulogic", size: 12))
-                .foregroundStyle(Color.gray)
-                .multilineTextAlignment(.center)
+            VStack {
+                HStack {
+                    TileView(tile: 45)
+                        .opacity(visibleItems >= 13 ? 1 : 0)
+                    Text("10 pts")
+                        .font(.custom("Emulogic", size: metrics.isPad ? 24 : 12))
+                        .foregroundStyle(Color.gray)
+                        .multilineTextAlignment(.center)
+                        .opacity(visibleItems >= 13 ? 1 : 0)
+                }
+                HStack {
+                    TileView(tile: 47)
+                        .opacity(visibleItems >= 13 ? 1 : 0)
+                    Text("50 pts")
+                        .font(.custom("Emulogic", size: metrics.isPad ? 24 : 12))
+                        .foregroundStyle(Color.gray)
+                        .multilineTextAlignment(.center)
+                        .opacity(visibleItems >= 13 ? 1 : 0)
+                }
+            }
             Spacer()
             Text("(c) Namco 1980")
-                .font(.custom("Emulogic", size: 12))
+                .font(.custom("Emulogic", size: metrics.isPad ? 24 : 12))
                 .foregroundStyle(Color.pink)
                 .multilineTextAlignment(.center)
             Spacer()
             
             Button(action: {
+                introTask?.cancel()
+                introTask = nil
                 manager.reset()
             }) {
                 Text("Play")
-                    .font(.custom("Emulogic", size: 12))
+                    .font(.custom("Emulogic", size: metrics.isPad ? 24 : 12))
                     .padding()
                     .background(Color.gray)
                     .foregroundColor(.white)
@@ -95,8 +128,59 @@ struct IntroView: View {
             }
             Spacer()
         }.frame(width: metrics.width, height: metrics.height)
-            .onAppear{
+            .task {
+                introTask = Task {
+                for i in 1...13 {
+                    try? await Task.sleep(for: .seconds(0.75))
+                    
+                    withAnimation(.easeIn(duration: 0.4)) {
+                        visibleItems = i
+                    }
+                }
+                // First sequence has finished
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    setPacManAnimation()
+                    showNextAnimation = true
+                }
             }
+        }
+            .onAppear{
+                setSprites()
+                visibleItems = 1
+                manager.introAnimation = false
+                manager.introDot = false
+            }
+        if let pacman = manager.pacManSprite {
+            if manager.introDot {
+                TileView2(tile: 47).position(CGPoint(x: 50, y: pacman.position.y))
+            }
+           if !manager.pauseAction {
+                PacManSpriteView(pacMan: pacman).zIndex(8)
+            }
+            ForEach(manager.ghostSprites, id: \.id) { ghost in
+                if manager.pauseAction && ghost.ghostState == .dead {
+                    GhostScoreView().position(pacman.position).zIndex(10)
+                } else if ghost.ghostState != .dead {
+                    GhostView(ghost: ghost).zIndex(6)
+                }
+            }
+        }
+    }
+    
+    func setPacManAnimation() {
+        guard manager.gameState == .intro else { return }
+        manager.introSprites()
+        manager.introAnimation = true
+    }
+    
+    func setSprites(){
+        blinky = GhostSprite(xPos: 14, yPos: 11, tileSize: CGSize(width: metrics.isPad ? 60 : 30, height: metrics.isPad ? 60 : 30), gameSpeed: 0.0, ghostType: .Blinky)
+        clyde = GhostSprite(xPos: 12, yPos: 14, tileSize: CGSize(width: metrics.isPad ? 60 : 30, height: metrics.isPad ? 60 : 30), gameSpeed: 0.0,ghostType: .Clyde)
+        inky = GhostSprite(xPos: 14, yPos: 14, tileSize: CGSize(width: metrics.isPad ? 60 : 30, height: metrics.isPad ? 60 : 30), gameSpeed: 0.0,ghostType: .Inky)
+        pinky = GhostSprite(xPos: 16, yPos: 14, tileSize: CGSize(width: metrics.isPad ? 60 : 30, height: metrics.isPad ? 60 : 30), gameSpeed: 0.0,ghostType: .Pinky)
+        manager.ghostSprites.removeAll()
+        manager.pacManSprite = nil
+
     }
 }
 

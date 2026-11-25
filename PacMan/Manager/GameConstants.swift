@@ -17,7 +17,7 @@ public enum JoyPad {
 }
 
 public enum GameState {
-    case intro,starting,starting2,playing,caught,gameover,highscore
+    case intro,intro2,starting,starting2,playing,caught,nextlevel,intermission,gameover,highscore
 }
 
 public enum Direction {
@@ -25,12 +25,14 @@ public enum Direction {
 }
 
 public enum Fruit:Int, CaseIterable {
-    case cherry = 0,strawberry,orange,apple,grape,bug,bell,key
+    case cherry = 0,strawberry,peach,apple,grape,galaxian,bell,key
 }
 public enum GameConstants {
     
     public enum Game {
         public static let Lives = 3
+        public static let BaseSpeed: CGFloat = 75.75757625
+        public static let OriginalTileSize: CGFloat = 8
     }
     public enum Screen {
         public static let Width = 28
@@ -57,10 +59,6 @@ public enum GameConstants {
     
     public enum Animation {
         public static let Sprite = 8
-    }
-
-    public enum Distance {
-        public static let Sprite = 1.0
     }
 
     public enum Size {

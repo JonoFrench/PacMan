@@ -17,9 +17,26 @@ class GameManager {
     var metrics:LayoutMetrics?
     var gameState:GameState = .intro
     var lives:Int = GameConstants.Game.Lives
-    var score: Int = 0
+    var nextLifeScore = 10000
+    var score: Int = 0 {
+        didSet {
+            if score > hiscore {
+                hiscore = score
+            }
+        }
+    }
+    var hiscore: Int {
+        get {
+            UserDefaults.standard.integer(forKey: "hiscore")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "hiscore")
+        }
+    }
+    var level: Int = 0
     var mapX = 0
     var mapY = 0
+    var gameSpeed: CGFloat = 0
     var pacManSprite:PacManSprite?
     let randomChance: (Int) -> Bool = { probability in
         Int.random(in: 0...100) < probability
@@ -31,12 +48,15 @@ class GameManager {
     var lastTimestamp:CFTimeInterval = 0
     var dt = 0.0
     var tiles:[UIImage] = []
+    var whiteTiles:[UIImage] = []
     var fruit:[UIImage] = []
     var ghostScores:[UIImage] = []
     var scoresArray:[Int] = [200,400,800,1600]
     var fruitCollected:[Fruit] = []
     
-    let screenData:[[Int]] = [ [01,10,10,10,10,10,10,10,10,10,10,10,10,43,42,10,10,10,10,10,10,10,10,10,10,10,10,00],[03,44,44,44,44,44,44,44,44,44,44,44,44,25,24,44,44,44,44,44,44,44,44,44,44,44,44,02],[03,44,23,20,20,22,44,23,20,20,20,22,44,25,24,44,23,21,21,21,22,44,23,20,20,22,44,02],[03,44,25,44,44,24,44,25,44,44,44,24,44,25,24,44,25,44,44,44,24,44,25,44,44,24,44,02],[03,44,27,15,15,26,44,27,15,15,15,26,44,27,26,44,27,15,15,15,26,44,27,15,15,26,44,02],[03,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,02],[03,44,23,20,20,22,44,23,22,44,23,20,20,20,20,20,20,22,44,23,22,44,23,20,20,22,44,02],[03,44,27,15,15,26,44,24,25,44,27,15,15,22,23,15,15,26,44,24,25,44,27,15,15,26,44,02],[03,44,44,44,44,44,44,24,25,44,44,44,44,25,24,44,44,44,44,24,25,44,44,44,44,44,44,02],[05,12,12,12,12,22,44,24,27,20,20,22,44,25,24,44,23,20,20,26,25,44,23,12,12,12,12,04],[44,44,44,44,44,03,44,24,23,15,15,26,44,27,26,44,27,15,15,22,25,44,02,44,44,44,44,44],[44,44,44,44,44,03,44,24,25,44,44,44,44,44,44,44,44,44,44,24,25,44,02,44,44,44,44,44],[44,44,44,44,44,03,44,24,25,44,29,12,33,44,44,32,12,28,44,24,25,44,02,44,44,44,44,44],[10,10,10,10,10,26,44,27,26,44,02,44,44,44,44,44,44,03,44,27,26,44,27,10,10,10,10,10],[44,44,44,44,44,44,44,44,44,44,02,44,44,44,44,44,44,03,44,44,44,44,44,44,44,44,44,44],[12,12,12,12,12,22,44,23,22,44,02,44,44,44,44,44,44,03,44,23,22,44,23,12,12,12,12,12],[44,44,44,44,44,03,44,24,25,44,31,10,10,10,10,10,10,30,44,24,25,44,02,44,44,44,44,44],[44,44,44,44,44,03,44,24,25,44,44,44,44,44,44,44,44,44,44,24,25,44,02,44,44,44,44,44],[44,44,44,44,44,03,44,24,25,44,23,20,20,20,20,20,20,22,44,24,25,44,02,44,44,44,44,44],[01,10,10,10,10,26,44,27,26,44,27,15,15,22,23,15,15,26,44,27,26,44,27,10,10,10,10,00],[03,44,44,44,44,44,44,44,44,44,44,44,44,25,24,44,44,44,44,44,44,44,44,44,44,44,44,02],[03,44,23,20,20,22,44,23,20,20,20,22,44,25,24,44,23,20,20,20,22,44,23,20,20,22,44,02],[03,44,27,15,22,24,44,27,15,15,15,26,44,27,26,44,27,15,15,15,26,44,25,23,15,26,44,02],[03,44,44,44,25,24,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,25,24,44,44,44,02],[07,20,22,44,25,24,44,23,22,44,23,20,20,20,20,20,20,22,44,23,22,44,25,24,44,23,20,06],[09,15,26,44,27,26,44,24,25,44,27,15,15,22,23,15,15,26,44,24,25,44,27,26,44,27,15,08],[03,44,44,44,44,44,44,24,25,44,44,44,44,25,24,44,44,44,44,24,25,44,44,44,44,44,44,02],[03,44,23,20,20,20,20,26,27,20,20,22,44,25,24,44,23,20,20,26,27,20,20,20,20,22,44,02],[03,44,27,15,15,15,15,15,15,15,15,26,44,27,26,44,27,15,15,15,15,15,15,15,15,26,44,02],[03,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,02],[05,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,04]
+    let levelFruit:[Fruit] = [.cherry,.strawberry,.peach,.peach,.apple,.apple,.grape,.grape,.galaxian,.galaxian,.bell,.bell,.key]
+    
+    let screenData:[[Int]] = [ [01,10,10,10,10,10,10,10,10,10,10,10,10,43,42,10,10,10,10,10,10,10,10,10,10,10,10,00],[03,44,44,44,44,44,44,44,44,44,44,44,44,25,24,44,44,44,44,44,44,44,44,44,44,44,44,02],[03,44,23,15,15,22,44,23,15,15,15,22,44,25,24,44,23,15,15,15,22,44,23,15,15,22,44,02],[03,44,25,44,44,24,44,25,44,44,44,24,44,25,24,44,25,44,44,44,24,44,25,44,44,24,44,02],[03,44,27,20,20,26,44,27,20,20,20,26,44,27,26,44,27,20,20,20,26,44,27,20,20,26,44,02],[03,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,02],[03,44,23,15,15,22,44,23,22,44,23,15,15,15,15,15,15,22,44,23,22,44,23,15,15,22,44,02],[03,44,27,20,20,26,44,25,24,44,27,20,20,35,34,20,20,26,44,25,24,44,27,20,20,26,44,02],[03,44,44,44,44,44,44,25,24,44,44,44,44,25,24,44,44,44,44,25,24,44,44,44,44,44,44,02],[05,12,12,12,12,22,44,25,36,15,15,22,44,25,24,44,23,15,15,37,24,44,23,12,12,12,12,04],[44,44,44,44,44,03,44,25,34,20,20,26,44,27,26,44,27,20,20,35,24,44,02,44,44,44,44,44],[44,44,44,44,44,03,44,25,24,44,44,44,44,44,44,44,44,44,44,25,24,44,02,44,44,44,44,44],[44,44,44,44,44,03,44,25,24,44,29,12,33,44,44,32,12,28,44,25,24,44,02,44,44,44,44,44],[10,10,10,10,10,26,44,27,26,44,02,44,44,44,44,44,44,03,44,27,26,44,27,10,10,10,10,10],[44,44,44,44,44,44,44,44,44,44,02,44,44,44,44,44,44,03,44,44,44,44,44,44,44,44,44,44],[12,12,12,12,12,22,44,23,22,44,02,44,44,44,44,44,44,03,44,23,22,44,23,12,12,12,12,12],[44,44,44,44,44,03,44,25,24,44,31,10,10,10,10,10,10,30,44,25,24,44,02,44,44,44,44,44],[44,44,44,44,44,03,44,25,24,44,44,44,44,44,44,44,44,44,44,25,24,44,02,44,44,44,44,44],[44,44,44,44,44,03,44,25,24,44,23,15,15,15,15,15,15,22,44,25,24,44,02,44,44,44,44,44],[01,10,10,10,10,26,44,27,26,44,27,20,20,35,34,20,20,26,44,27,26,44,27,10,10,10,10,00],[03,44,44,44,44,44,44,44,44,44,44,44,44,25,24,44,44,44,44,44,44,44,44,44,44,44,44,02],[03,44,23,15,15,22,44,23,15,15,15,22,44,25,24,44,23,15,15,15,22,44,23,15,15,22,44,02],[03,44,27,20,35,24,44,27,20,20,20,26,44,27,26,44,27,20,20,20,26,44,25,34,20,26,44,02],[03,44,44,44,25,24,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,25,24,44,44,44,02],[07,15,22,44,25,24,44,23,22,44,23,15,15,15,15,15,15,22,44,23,22,44,25,24,44,23,15,06],[09,20,26,44,27,26,44,25,24,44,27,20,20,35,34,20,20,26,44,25,24,44,27,26,44,27,20,08],[03,44,44,44,44,44,44,25,24,44,44,44,44,25,24,44,44,44,44,25,24,44,44,44,44,44,44,02],[03,44,23,15,15,15,15,37,36,15,15,22,44,25,24,44,23,15,15,37,36,15,15,15,15,22,44,02],[03,44,27,20,20,20,20,20,20,20,20,26,44,27,26,44,27,20,20,20,20,20,20,20,20,26,44,02],[03,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,02],[05,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,04]
     ]
     
     let map:[String] = [
@@ -90,9 +110,13 @@ class GameManager {
     var showFruit = false
     var selectedFruit: Fruit = .cherry
     var dotsCollected = 0
+    var energisersEaten = 0
     var ghostCaught = 0
     var pauseAction = false
     
+    var introAnimation = false
+    var introDot = true
+
     init() {
         ///Here we go, lets have a nice DisplayLink to update our model with the screen refresh.
         let displayLink:CADisplayLink = CADisplayLink(target: self, selector: #selector(refreshModel))
@@ -125,35 +149,49 @@ class GameManager {
             gameState = .intro
         }
     }
-    
-    ///Restart after life loss
-    func restart() {
-        pacManSprite = PacManSprite(xPos: 14,yPos: 23, tileSize: CGSize(width: self.tileSize, height: self.tileSize))
-        ghostSprites.removeAll()
-        ghostSprites.append(GhostSprite(xPos: 14, yPos: 11, tileSize: CGSize(width: self.tileSize, height: self.tileSize), ghostType: .Blinky))
-        ghostSprites.append(GhostSprite(xPos: 12, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), ghostType: .Clyde))
-        ghostSprites.append(GhostSprite(xPos: 14, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), ghostType: .Inky))
-        ghostSprites.append(GhostSprite(xPos: 16, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), ghostType: .Pinky))
-        ghostSprites[0].ghostState = .wandering
-        ghostExitQueue = [
-            .Inky,
-            .Clyde,
-            .Pinky
-        ]
-
-        start()
+    ///Add to the score
+    func addScore(newScore:Int) {
+        score += newScore
+        ///Extra life every 5000 points
+        if score >= nextLifeScore {
+            lives += 1
+            nextLifeScore += 10000
+            fx.extraSound()
+        }
     }
     
-    ///Reseting the game to go again.
-    func reset() {
+    func introSprites(){
+        if let metrics {
+            introDot = true
+            pacManSprite = PacManSprite(xPos: 32,yPos: metrics.isPad ? 27 : 39, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed)
+            pacManSprite?.direction = .left
+            pacManSprite?.speedMultiplier = 0.8
+            ghostSprites.removeAll()
+            ghostSprites.append(GhostSprite(xPos: 34, yPos: metrics.isPad ? 27 : 39, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Blinky))
+            ghostSprites.append(GhostSprite(xPos: 36, yPos: metrics.isPad ? 27 : 39, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Clyde))
+            ghostSprites.append(GhostSprite(xPos: 38, yPos: metrics.isPad ? 27 : 39, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Inky))
+            ghostSprites.append(GhostSprite(xPos: 40, yPos: metrics.isPad ? 27 : 39, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Pinky))
+            for ghost in ghostSprites {
+                ghost.ghostState = .wandering
+                ghost.direction = .left
+                ghost.speedMultiplier = 0.8
+                
+            }
+            fruitCollected.removeAll()
+            fruitCollected.append(.cherry)
+            workingMap = map
+        }
+    }
+    
+    func introSprites2() {
         ghostSprites.removeAll()
         fruitCollected.removeAll()
-        fruitCollected = [.cherry,.apple,.orange,.bell,.key]
-        pacManSprite = PacManSprite(xPos: 14,yPos: 23, tileSize: CGSize(width: self.tileSize, height: self.tileSize))
-        ghostSprites.append(GhostSprite(xPos: 14, yPos: 11, tileSize: CGSize(width: self.tileSize, height: self.tileSize), ghostType: .Blinky))
-        ghostSprites.append(GhostSprite(xPos: 12, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), ghostType: .Clyde))
-        ghostSprites.append(GhostSprite(xPos: 14, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), ghostType: .Inky))
-        ghostSprites.append(GhostSprite(xPos: 16, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), ghostType: .Pinky))
+        fruitCollected = []
+        pacManSprite = PacManSprite(xPos: 14,yPos: 23, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed)
+        ghostSprites.append(GhostSprite(xPos: 14, yPos: 11, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Blinky))
+        ghostSprites.append(GhostSprite(xPos: 12, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Clyde))
+        ghostSprites.append(GhostSprite(xPos: 14, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Inky))
+        ghostSprites.append(GhostSprite(xPos: 16, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Pinky))
         ghostSprites[0].ghostState = .wandering
         ghostExitQueue = [
             .Inky,
@@ -163,12 +201,71 @@ class GameManager {
         workingMap = map
         lives = 3
         score = 0
+        nextLifeScore = 10000
+        level = 0
         dotsCollected = 0
+        energisersEaten = 0
         ghostCaught = 0
         pauseAction = false
         showFruit = false
+        fruitCollected.append(fruitForLevel())
+        setSpeedForLevel()
+        pacManSprite?.direction = .right
+        moveDirection = .right
+        requestedDirection = .up
+
+    }
+    
+    ///Restart after life loss
+    func restart() {
+        pacManSprite = PacManSprite(xPos: 14,yPos: 23, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed)
+        ghostSprites.removeAll()
+        ghostSprites.append(GhostSprite(xPos: 14, yPos: 11, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Blinky))
+        ghostSprites.append(GhostSprite(xPos: 12, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Clyde))
+        ghostSprites.append(GhostSprite(xPos: 14, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Inky))
+        ghostSprites.append(GhostSprite(xPos: 16, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Pinky))
+        ghostSprites[0].ghostState = .wandering
+        ghostExitQueue = [
+            .Inky,
+            .Clyde,
+            .Pinky
+        ]
+        
         start()
     }
+    
+    ///Reseting the game to go again.
+    func reset() {
+        ghostSprites.removeAll()
+        fruitCollected.removeAll()
+        fruitCollected = []
+        pacManSprite = PacManSprite(xPos: 14,yPos: 23, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed)
+        ghostSprites.append(GhostSprite(xPos: 14, yPos: 11, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Blinky))
+        ghostSprites.append(GhostSprite(xPos: 12, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Clyde))
+        ghostSprites.append(GhostSprite(xPos: 14, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Inky))
+        ghostSprites.append(GhostSprite(xPos: 16, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Pinky))
+        ghostSprites[0].ghostState = .wandering
+        ghostExitQueue = [
+            .Inky,
+            .Clyde,
+            .Pinky
+        ]
+        workingMap = map
+        lives = 5
+        score = 0
+        nextLifeScore = 10000
+        level = 0
+        dotsCollected = 0
+        energisersEaten = 0
+        ghostCaught = 0
+        pauseAction = false
+        showFruit = false
+        fruitCollected.append(fruitForLevel())
+        setSpeedForLevel()
+        start()
+    }
+    
+    var frightState = false
     
     func eatDot() {
         guard let pacManSprite else { return }
@@ -187,26 +284,39 @@ class GameManager {
         
         if characters[column] == "o" {
             dotEaten = true
-            score += 10
+            addScore(newScore: 10)
             characters[column] = "+"
             workingMap[row] = String(characters)
             dotsCollected += 1
             fx.chompSound()
+            if dotsCollected == 240 && energisersEaten == 4 {
+                //Ok so next level
+                nextLevel()
+            }
         }
         if characters[column] == "*" {
-            score += 50
+            dotEaten = true
+            addScore(newScore: 50)
+            energisersEaten += 1
             characters[column] = "+"
             workingMap[row] = String(characters)
-            fx.intermissionSound()
+            if dotsCollected == 240 && energisersEaten == 4 {
+                //Ok so next level
+                nextLevel()
+            }
+            
+            //            fx.intermissionSound()
             //Set ghosts to scared.
+            frightState = true
             ghostCaught = 0
+            setFrightTimeForLevel()
             for ghost in ghostSprites {
                 ghost.ghostState = .scared
                 ghost.flashing = false
                 ghost.flash = false
             }
             Task { @MainActor in
-                try? await Task.sleep(for: .seconds(7))
+                try? await Task.sleep(for: .seconds(flashingTime))
                 for ghost in ghostSprites {
                     if ghost.ghostState == .scared {
                         ghost.flashing = true
@@ -214,7 +324,7 @@ class GameManager {
                 }
             }
             Task { @MainActor in
-                try? await Task.sleep(for: .seconds(10))
+                try? await Task.sleep(for: .seconds(totalTime))
                 for ghost in ghostSprites {
                     if ghost.ghostState == .scared {
                         ghost.flashing = false
@@ -222,14 +332,34 @@ class GameManager {
                         ghost.ghostState = .wandering
                     }
                 }
+                frightState = false
             }
             
         }
     }
     
+    func nextLevel() {
+        pauseAction = true
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.5))
+            gameState = .nextlevel
+            level += 1
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(3))
+                pauseAction = false
+                dotsCollected = 0
+                energisersEaten = 0
+                workingMap = map
+                fruitCollected.append(fruitForLevel())
+                setSpeedForLevel()
+                restart()
+            }
+        }
+    }
+    
     private func updatePacMan(deltaTime dt: CGFloat) {
         
-        guard gameState == .playing,
+        guard gameState == .playing || gameState == .intro2,
               let pacManSprite else { return }
         
         if moveDirection != .stop {
@@ -240,7 +370,7 @@ class GameManager {
     
     private func handleJoyPad() {
         
-        guard gameState == .playing,
+        guard gameState == .playing || gameState == .intro2,
               let pacManSprite else { return }
         
         // Try the requested direction
@@ -447,15 +577,62 @@ class GameManager {
         dt = CGFloat(link.timestamp - lastTimestamp)
         lastTimestamp = link.timestamp
         
+        if gameState == .intro {
+            if introAnimation {
+                if let pacManSprite {
+                    if !pauseAction {
+                        pacManSprite.move(deltaTime: dt)
+                        pacManSprite.animate()
+                        
+                        for ghost in ghostSprites {
+                            ghost.move(deltaTime: dt)
+                            ghost.animate()
+                        }
+                        
+                        if pacManSprite.position.x <= 50 {
+                            introDot = false
+                            pacManSprite.direction = .right
+                            for ghost in ghostSprites {
+                                ghost.direction = .right
+                                ghost.ghostState = .scared
+                                ghost.speedMultiplier = 0.50
+                            }
+                        }
+                        if pacManSprite.position.x >= metrics!.width + (metrics!.isPad ? 150 : 100) {
+                            introSprites2()
+                            gameState = .intro2
+                        }
+                        checkPacManEatingIntroGhosts()
+                    }
+                }
+            }
+        }
+        if gameState == .intro2 {
+            handleJoyPad()
+            eatDot()
+            setSpeedForLevel()
+            setGhostSpeedForLevel()
+            updatePacMan(deltaTime: dt)
+            updateGhosts(deltaTime: dt)
+            checkPacManEatingGhosts()
+            checkCollectFruit()
+
+            if let pacManSprite {
+                pacManSprite.animate()
+            }
+            for ghost in ghostSprites {
+                ghost.animate()
+            }
+
+        }
+        
         if gameState == .playing {
             if !pauseAction {
                 handleJoyPad()
-                if dotEaten {
-                    dotEaten.toggle()
-                } else {
-                    updatePacMan(deltaTime: dt)
-                }
                 eatDot()
+                setSpeedForLevel()
+                setGhostSpeedForLevel()
+                updatePacMan(deltaTime: dt)
                 updateGhosts(deltaTime: dt)
                 checkPacManEatingGhosts()
                 checkPacManCaught()
@@ -478,18 +655,28 @@ class GameManager {
     func checkPacManCaught(){
         if let pacManSprite {
             for ghost in ghostSprites {
-                if pacManSprite.circlesIntersect(center: ghost.position, diameter: tileSize) {
-                    pacManSprite.direction = .stop
-                    pacManSprite.caught = true
-                    fx.deathSound()
-                    gameState = .caught
-                    lives -= 1
-                    Task { @MainActor in
-                        try? await Task.sleep(for: .seconds(GameConstants.Delay.Caught))
-                        restart()
+                if ghost.ghostState == .chasing || ghost.ghostState == .wandering {
+                    if pacManSprite.circlesIntersect(center: ghost.position, diameter: tileSize) {
+                        pacManSprite.direction = .stop
+                        pacManSprite.caught = true
+                        fx.deathSound()
+                        gameState = .caught
+                        lives -= 1
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(GameConstants.Delay.Caught))
+                            if lives == 0 {
+                                gameState = .gameover
+                                Task { @MainActor in
+                                    try? await Task.sleep(for: .seconds(GameConstants.Delay.GameOver))
+                                    gameState = .intro
+                                }
+                                
+                            } else {
+                                restart()
+                            }
+                        }
+                        return
                     }
-                    
-                    return
                 }
             }
         }
@@ -497,19 +684,98 @@ class GameManager {
     
     func checkCollectFruit() {
         if showFruit, let pacManSprite {
-            if pacManSprite.circlesIntersect(center: CGPoint(x: metrics!.centerX, y: tileSize * 17.5), diameter: 24) {
+            if pacManSprite.circlesIntersect(center: CGPoint(x: metrics!.centerX, y: tileSize * 17.5), diameter: 12) {
                 showFruit = false
-                fruitCollected.append(selectedFruit)
-                score += 1000
+                addScore(newScore: bonusForLevel())
                 fx.fruitSound()
             }
-        } else if dotsCollected == 40 {
+        } else if dotsCollected == 70 || dotsCollected == 170 {
             showFruit = true
-            selectedFruit = Fruit.allCases.randomElement()!
+            selectedFruit = fruitForLevel()
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(GameConstants.Time.ShowFruit))
                 showFruit = false
             }
         }
+    }
+    
+    func fruitForLevel() -> Fruit {
+        if level > levelFruit.count { return .key }
+        return levelFruit[level]
+    }
+    
+    let levelBonuses: [Int] = [100,300,500,500,700,700,1000,1000,2000,2000,3000,3000,5000]
+
+    func bonusForLevel() -> Int {
+        if level >= 12 { return 5000 }
+        return levelBonuses[level]
+    }
+    let speedForLevel: [CGFloat] = [0.8,0.9,0.9,0.9,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]
+    let ghostForLevel: [CGFloat] = [0.75,0.85,0.85,0.85,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95]
+    let dotForLevel: [CGFloat] = [0.71,0.79,0.79,0.87,0.87,0.87,0.87,0.87,0.87,0.87,0.87,0.87,0.87]
+    let tunnelForLevel: [CGFloat] = [0.40,0.45,0.45,0.45,0.50,0.50]
+    let frightPacForLevel: [CGFloat] = [0.9,0.95,0.95,0.95,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]
+    let frightDotForLevel: [CGFloat] = [0.8,0.9,0.9,0.9,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]
+    let frightGhostForLevel: [CGFloat] = [0.5,0.55,0.55,0.55,0.60,0.60,0.60,0.60]
+
+    func setSpeedForLevel() {
+        if let pacManSprite {
+            if frightState {
+                pacManSprite.speedMultiplier = level < 5 ? frightPacForLevel[level] : 1.0
+            }
+            if level >= 20 {
+                pacManSprite.speedMultiplier = dotEaten ? 0.79 : 0.9
+                dotEaten = false
+                return
+            }
+            if level >= 4 {
+                pacManSprite.speedMultiplier = dotEaten ? 0.87 : 1.0
+                dotEaten = false
+                return
+            }
+            if dotEaten {
+                pacManSprite.speedMultiplier = dotForLevel[level]
+                dotEaten = false
+            } else {
+                pacManSprite.speedMultiplier = speedForLevel[level]
+            }
+        }
+    }
+    
+    func setGhostSpeedForLevel() {
+        for ghost in ghostSprites {
+            if ghost.ghostState == .dead {
+                ghost.speedMultiplier = 1.25
+                continue
+            }
+        let column = Int(ghost.position.x / tileSize)
+        let row = Int(ghost.position.y / tileSize)
+            //is in the tunnel?
+            let isInTunnel = row == GameConstants.Screen.TunnelRow && ((0...5).contains(column) || (22...28).contains(column))
+            if isInTunnel {
+                if level < 5 { ghost.speedMultiplier = tunnelForLevel[level] } else {
+                    ghost.speedMultiplier = 0.50
+                }
+                continue
+            }
+            if level < 5 {
+                ghost.speedMultiplier = frightState ? frightGhostForLevel[level] : ghostForLevel[level]
+            } else {
+                ghost.speedMultiplier = frightState ? 0.60 : 0.95
+            }
+        }
+        
+    }
+    
+    var flashingTime = 0.0
+    var totalTime = 0.0
+    let timeForLevel: [Int] = [6,5,4,3,2,5,2,2,1,5,2,1,1,3,1,1,0,1,0,0,0]
+    let flashForLevel: [Int] = [5,5,5,5,5,5,5,5,3,5,5,3,3,5,3,3,0,3,0,0,0]
+
+    func setFrightTimeForLevel() {
+        
+        totalTime = level < 18 ? CGFloat(timeForLevel[level]) : 0.0
+        flashingTime = totalTime - (CGFloat(flashForLevel[level]) * (4.0 * 0.16))
+        print("totalTime \(totalTime) flashingTime \(flashingTime)")
     }
 }

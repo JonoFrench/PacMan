@@ -9,6 +9,7 @@ import SwiftUI
 
 struct TopView: View {
     @Environment(GameManager.self) var manager
+    @Environment(\.layoutMetrics) private var metrics
     var body: some View {
 
         VStack {
@@ -24,8 +25,8 @@ struct TopView: View {
 
                 VStack {
                     Text("High Score")
-                    Text("000000")
-                }
+                    Text(String(format: "%06d", manager.hiscore))
+                 }
                 .frame(maxWidth: .infinity)
 
                 VStack {
@@ -34,7 +35,7 @@ struct TopView: View {
                 }
                 .frame(maxWidth: .infinity)
             }
-            .font(.custom("Emulogic", size: 12))
+            .font(.custom("Emulogic", size: metrics.isPad ? 24 : 12))
             .foregroundStyle(.white)
             .multilineTextAlignment(.center)
 

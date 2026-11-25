@@ -40,27 +40,24 @@ class SwiftUISprite:ObservableObject {
     var currentAnimationFrame: Int = 0
     var animationSpeed: Int = 0
 ///Movement
-    var moveDistance:CGFloat = 0.0
-    var moveCounter: Int = 0
-    var moveSpeed: CGFloat = 0.0
+    var speedMultiplier: CGFloat = 1.0
     var direction: Direction = .stop
-    
+    var gameSpeed:CGFloat = 0.0
     var oldX = 0
     var oldY = 0
     
-    init(position:CGPoint, frameSize: CGSize) {
+    init(position:CGPoint, frameSize: CGSize, gameSpeed:CGFloat) {
         self.frameSize = frameSize
         self.position = position
-//        self.metrics = metrics
+        self.gameSpeed = gameSpeed
         animateCounter = 0
-        moveCounter = 0
         currentAnimationFrame = 0
     }
-    init(xPos:Int, yPos:Int, frameSize: CGSize) {
+    init(xPos:Int, yPos:Int, frameSize: CGSize,gameSpeed:CGFloat) {
         self.frameSize = frameSize
         self.position = positionForTile(x: xPos, y: yPos)
+        self.gameSpeed = gameSpeed
         animateCounter = 0
-        moveCounter = 0
         currentAnimationFrame = 0
     }
 

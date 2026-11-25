@@ -37,20 +37,18 @@ final class GhostSprite:SwiftUISprite,Moveable,Animatable {
     let houseWaitDuration: CGFloat = 3.0
     var flashing = false
     
-    init(xPos:Int, yPos:Int,tileSize:CGSize, ghostType:Ghosts) {
+    init(xPos:Int, yPos:Int,tileSize:CGSize,gameSpeed:CGFloat, ghostType:Ghosts) {
         ghost = ghostType
-        super.init(xPos:xPos, yPos:yPos, frameSize:tileSize)
+        super.init(xPos:xPos, yPos:yPos, frameSize:tileSize, gameSpeed: gameSpeed)
         setImages()
         animationSpeed = GameConstants.Animation.Sprite
-        moveSpeed = GameConstants.Speed.Ghost
-        moveDistance = GameConstants.Distance.Sprite
         currentFrame = rightFrames[0]
         direction = .right
     }
     
     func move(deltaTime dt: CGFloat) {
         guard direction != .stop  else {return}
-        let md = moveDistance * moveSpeed * dt
+        let md = gameSpeed * speedMultiplier * dt
         /// Here we now move our sprite. Each will have its own specific movement logic.
         if direction == .left {
             self.position.x -= md
@@ -61,15 +59,6 @@ final class GhostSprite:SwiftUISprite,Moveable,Animatable {
         } else if direction == .down {
             self.position.y += md
         }
-    }
-    
-    func setMoveSpeed(speed:CGFloat) {
-        moveCounter = 0
-        moveSpeed = speed
-    }
-    
-    func setMoveDistance(distance:Double) {
-        moveDistance = distance
     }
 
     func setAnimateSpeed(speed:Int) {

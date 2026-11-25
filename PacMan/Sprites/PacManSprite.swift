@@ -19,22 +19,22 @@ final class PacManSprite:SwiftUISprite,Moveable,Animatable {
     var lifeFrame:UIImage = UIImage()
     var caught = false
     
-    init(xPos:Int, yPos:Int,tileSize:CGSize) {
-        super.init(xPos:xPos, yPos:yPos, frameSize:tileSize)
+    init(xPos:Int, yPos:Int,tileSize:CGSize,gameSpeed:CGFloat) {
+        super.init(xPos:xPos, yPos:yPos, frameSize:tileSize, gameSpeed: gameSpeed)
         
         setImages()
         animationSpeed = GameConstants.Animation.Sprite
-        moveSpeed = GameConstants.Speed.PacMan
-        moveDistance = GameConstants.Distance.Sprite
         currentFrame = rightFrames[1]
         direction = .stop
         lifeFrame = leftFrames[1]
+        speedMultiplier = 0.8
     }
     
     func move(deltaTime dt: CGFloat) {
         guard direction != .stop  else {return}
-        let md = moveDistance * moveSpeed * dt
-//        print("delta time \(dt) movedistance \(md)")
+        let md = gameSpeed * speedMultiplier * dt
+
+        print("delta time \(dt) movedistance \(md) gameSpeed \(gameSpeed) speedMultiplier \(speedMultiplier)")
         /// Here we now move our sprite. Each will have its own specific movement logic.
         if direction == .left {
             self.position.x -= md
@@ -91,7 +91,8 @@ final class PacManSprite:SwiftUISprite,Moveable,Animatable {
         let centreX = (floor(position.x / tileWidth) + 0.5) * tileWidth
         let centreY = (floor(position.y / tileHeight) + 0.5) * tileHeight
 
-        let tolerance = moveDistance * 100 * 0.02
+//        let tolerance = moveDistance * 100 * 0.02
+        let tolerance = 100 * 0.02
 
         switch direction {
 
@@ -107,13 +108,9 @@ final class PacManSprite:SwiftUISprite,Moveable,Animatable {
     }
     
     func setMoveSpeed(speed:CGFloat) {
-        moveCounter = 0
-        moveSpeed = speed
+        speedMultiplier = speed
     }
     
-    func setMoveDistance(distance:Double) {
-        moveDistance = distance
-    }
 
     func setAnimateSpeed(speed:Int) {
         animateCounter = 0

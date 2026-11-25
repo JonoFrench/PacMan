@@ -20,7 +20,7 @@ struct DotView: View {
                             if characters[x] == "o" {
                                 TileView(tile: 45)
                             } else if characters[x] == "*" {
-                                TileView(tile: 47)
+                                TileView2(tile: 47)
                             } else {
                                 Rectangle()
                                     .foregroundStyle(.clear)

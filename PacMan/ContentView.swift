@@ -15,16 +15,18 @@ struct ContentView: View {
             ZStack {
                 if manager.gameState == .intro {
                     IntroView()
-                }else if manager.gameState == .playing || manager.gameState == .starting || manager.gameState == .starting2 || manager.gameState == .caught {
+                } else if manager.gameState == .intro2 {
+                    IntroView2()
+                } else {
                     GameView()
-                }else if manager.gameState == .gameover {
-                    GameOverView()
                 }
             }.environment(\.layoutMetrics, metrics)
                 .onAppear {
                     manager.metrics = metrics
                     manager.tileSize = metrics.width / CGFloat(GameConstants.Screen.Width)
-                    print("tilesize \(manager.tileSize)")
+                    manager.gameSpeed = GameConstants.Game.BaseSpeed * (manager.tileSize / GameConstants.Game.OriginalTileSize)
+
+                    print("tilesize \(manager.tileSize) gameSpeed \(manager.gameSpeed)")
 
                 }
         }.background(Color(.black))

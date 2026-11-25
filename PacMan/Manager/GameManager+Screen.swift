@@ -14,6 +14,7 @@ extension GameManager {
     func loadTiles() {
         for i in 0..<48 {
             tiles.append(getTile(name: "Tiles2", xPos: i,width: 8,height: 8)!)
+            whiteTiles.append(getTile(name: "Tiles3", xPos: i,width: 8,height: 8)!)
         }
 
     }

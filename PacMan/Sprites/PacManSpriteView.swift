@@ -15,7 +15,7 @@ struct PacManSpriteView: View {
             Image(uiImage: pacMan.currentFrame)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: pacMan.frameSize.width * 1.7, height: pacMan.frameSize.height * 1.7)
+                .frame(width: pacMan.frameSize.width * 1.8, height: pacMan.frameSize.height * 1.8)
                 .position(pacMan.position)
                 .allowsHitTesting(false)
         }.onAppear {
@@ -30,7 +30,7 @@ struct PacManLifeView: View {
             Image(uiImage: manager.pacManSprite!.lifeFrame)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 24, height: 24)
+                .frame(width:manager.metrics!.isPad ? 48 : 24, height:manager.metrics!.isPad ? 48 : 24)
         }
     }
 }

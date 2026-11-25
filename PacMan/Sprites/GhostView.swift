@@ -14,7 +14,7 @@ struct GhostView: View {
             Image(uiImage: ghost.currentFrame)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: ghost.frameSize.width * 1.7, height: ghost.frameSize.height * 1.7)
+                .frame(width: ghost.frameSize.width * 1.8, height: ghost.frameSize.height * 1.8)
                 .position(ghost.position)
                 .allowsHitTesting(false)
         }.onAppear {

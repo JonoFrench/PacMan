@@ -33,8 +33,14 @@ struct GameView: View {
                     }
                     if manager.gameState == .caught {
                         PacManSpriteView(pacMan: pacman).zIndex(8)
-
                     }
+                    if manager.gameState == .gameover {
+                        TextView(message: "Player ONE",colour: .cyan)
+                            .position(CGPoint(x: manager.metrics!.centerX, y: manager.tileSize * 11.5))
+                        TextView(message: "GAME OVER!",colour: .red)
+                            .position(CGPoint(x: manager.metrics!.centerX, y: manager.tileSize * 17.5))
+                    }
+
                     if manager.gameState == .playing {
                         
                         if manager.showFruit {

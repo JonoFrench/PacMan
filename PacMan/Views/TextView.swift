@@ -8,11 +8,12 @@
 import SwiftUI
 
 struct TextView: View {
+    @Environment(\.layoutMetrics) private var metrics
     var message = "Game Over"
     var colour:Color = .white
     var body: some View {
         Text(message)
-            .font(.custom("Emulogic", size: 12))
+            .font(.custom("Emulogic", size: metrics.isPad ? 24 : 12))
             .foregroundStyle(colour)
             .multilineTextAlignment(.center)
     }

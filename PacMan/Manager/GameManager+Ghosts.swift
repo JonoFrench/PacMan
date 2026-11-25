@@ -12,11 +12,29 @@ extension GameManager {
     
     func updateGhosts(deltaTime dt: CGFloat) {
         
-        guard gameState == .playing else { return }
+        //guard gameState == .playing else { return }
         
         for ghost in ghostSprites {
             updateGhost(ghost, deltaTime: dt)
             //            ghost.animate()
+        }
+    }
+    
+    func checkPacManEatingIntroGhosts() {
+        for ghost in ghostSprites {
+            if ghost.ghostState == .scared && ghost.circlesIntersect(center: pacManSprite!.position, diameter: self.tileSize / 2) {
+                ghost.ghostState = .dead
+                ghost.lastDecisionColumn = -1
+                ghost.lastDecisionRow = -1
+                pauseAction = true
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(1))
+                    pauseAction = false
+                    if ghostCaught < 3 {
+                        ghostCaught += 1
+                    }
+                }
+            }
         }
     }
     
@@ -28,7 +46,7 @@ extension GameManager {
                 ghost.lastDecisionRow = -1
                 fx.ghostSound()
                 pauseAction = true
-                score += scoresArray[ghostCaught]
+                addScore(newScore: scoresArray[ghostCaught])
                 Task { @MainActor in
                     try? await Task.sleep(for: .seconds(1))
                     pauseAction = false
@@ -38,7 +56,7 @@ extension GameManager {
         }
     }
     
-    private func updateGhost(_ ghost: GhostSprite, deltaTime dt: CGFloat) {
+    func updateGhost(_ ghost: GhostSprite, deltaTime dt: CGFloat) {
         
         if ghost.ghostState == .dead {
             updateGhostReturningHome(ghost, deltaTime: dt)
