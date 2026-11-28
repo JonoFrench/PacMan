@@ -12,6 +12,11 @@ public enum Ghosts:Int {
     case Blinky = 0, Pinky,Inky,Clyde
 }
 
+enum GhostMode {
+    case scatter
+    case chase
+}
+
 public enum JoyPad {
     case left,right,up,down,stop
 }

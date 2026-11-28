@@ -136,6 +136,21 @@ class GameManager {
     
     var intermission:Intermission = .two
     
+    //MARK: - Ghost Mode
+
+    var ghostModePhaseIndex = 0
+    var ghostModeElapsed: TimeInterval = 0
+
+    var currentGhostMode: GhostMode = .scatter
+
+    // This should connect to your existing frightened-mode timer/state.
+    var isFrightenedModeActive = false
+
+    var frightenedTask: Task<Void, Never>?
+    var flashingTask: Task<Void, Never>?
+    var frightenedFlashing = false
+    
+
     init() {
         ///Here we go, lets have a nice DisplayLink to update our model with the screen refresh.
         let displayLink:CADisplayLink = CADisplayLink(target: self, selector: #selector(refreshModel))
@@ -169,6 +184,7 @@ class GameManager {
     
     ///Restart after life loss
     func restart() {
+        resetGhostModes()
         setSprites()
         start()
     }
@@ -190,6 +206,7 @@ class GameManager {
         showFruit = false
         fruitCollected.append(fruitForLevel())
         setSpeedForLevel()
+        resetGhostModes()
         start()
     }
     
@@ -245,37 +262,60 @@ class GameManager {
                 //Ok so next level
                 checkLevel()
             }
-            
+            // Start frightened mode
+            startFrightenedMode()
             //            fx.intermissionSound()
             //Set ghosts to scared.
-            frightState = true
-            ghostCaught = 0
-            setFrightTimeForLevel()
-            for ghost in ghostSprites {
-                ghost.ghostState = .scared
-                ghost.flashing = false
-                ghost.flash = false
-            }
+            //            frightState = true
+            //            ghostCaught = 0
+            //            setFrightTimeForLevel()
+            //            for ghost in ghostSprites {
+            //
+            //                switch ghost.ghostState {
+            //
+            //                case .wandering, .chasing:
+            //
+            //                    ghost.ghostState = .scared
+            //                    ghost.flashing = false
+            //                    ghost.flash = false
+            //
+            //                    // Reverse direction when frightened begins
+            //                    ghost.direction = reverseDirection(ghost.direction)
+            //
+            //                default:
+            //                    break
+            //                }
+            //            }
+            ////            for ghost in ghostSprites {
+            ////                ghost.ghostState = .scared
+            ////                ghost.flashing = false
+            ////                ghost.flash = false
+            ////            }
+            //            Task { @MainActor in
+            //                try? await Task.sleep(for: .seconds(flashingTime))
+            //                for ghost in ghostSprites {
+            //                    if ghost.ghostState == .scared {
+            //                        ghost.flashing = true
+            //                    }
+            //                }
+            //            }
+            //            Task { @MainActor in
+            //                try? await Task.sleep(for: .seconds(totalTime))
+            //                for ghost in ghostSprites {
+            //                    if ghost.ghostState == .scared {
+            //                        ghost.flashing = false
+            //                        ghost.flash = false
+            //                        ghost.ghostState = .wandering
+            //                    }
+            //                }
             Task { @MainActor in
-                try? await Task.sleep(for: .seconds(flashingTime))
-                for ghost in ghostSprites {
-                    if ghost.ghostState == .scared {
-                        ghost.flashing = true
-                    }
-                }
-            }
-            Task { @MainActor in
+                
                 try? await Task.sleep(for: .seconds(totalTime))
-                for ghost in ghostSprites {
-                    if ghost.ghostState == .scared {
-                        ghost.flashing = false
-                        ghost.flash = false
-                        ghost.ghostState = .wandering
-                    }
-                }
+                
+                restoreGhostMode()
+                
                 frightState = false
             }
-            
         }
     }
     

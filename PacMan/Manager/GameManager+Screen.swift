@@ -8,6 +8,11 @@
 import Foundation
 import SwiftUI
 
+struct GhostModePhase {
+    let mode: GhostMode
+    let duration: TimeInterval?
+}
+
 extension GameManager {
     
     ///Add to the score

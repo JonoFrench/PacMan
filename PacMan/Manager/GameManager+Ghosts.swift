@@ -13,6 +13,7 @@ extension GameManager {
     func updateGhosts(deltaTime dt: CGFloat) {
         
         //guard gameState == .playing else { return }
+        updateGhostMode(deltaTime: dt)
         
         for ghost in ghostSprites {
             updateGhost(ghost, deltaTime: dt)
@@ -91,19 +92,52 @@ extension GameManager {
             return
         }
         
-        // Don't make multiple decisions on the same tile
+        
         if column != ghost.lastDecisionColumn ||
-            row != ghost.lastDecisionRow {
-            
+           row != ghost.lastDecisionRow {
+
             ghost.snapToTileCentre()
-            
             ghost.lastDecisionColumn = column
             ghost.lastDecisionRow = row
-            
-            if let newDirection = randomDirection(for: ghost) {
-                ghost.direction = newDirection
+
+            switch ghost.ghostState {
+            case .wandering:
+                if let newDirection = scatterDirection(for: ghost) {
+                    ghost.direction = newDirection
+                }
+
+            case .chasing:
+                if let newDirection = chaseDirection(for: ghost) {
+                    ghost.direction = newDirection
+                }
+
+            case .scared:
+                if let newDirection = randomDirection(for: ghost) {
+                    ghost.direction = newDirection
+                }
+
+            case .dead, .inHouse, .leavingHouse:
+                break
             }
         }
+
+        ghost.move(deltaTime: dt)
+        // Don't make multiple decisions on the same tile
+//        if column != ghost.lastDecisionColumn ||
+//            row != ghost.lastDecisionRow {
+//            
+//            ghost.snapToTileCentre()
+//            
+//            ghost.lastDecisionColumn = column
+//            ghost.lastDecisionRow = row
+//            
+//            if let newDirection = scatterDirection(for: ghost) {
+//                ghost.direction = newDirection
+//            }
+////            if let newDirection = randomDirection(for: ghost) {
+////                ghost.direction = newDirection
+////            }
+//        }
         ghost.move(deltaTime: dt)
         
     }
@@ -145,12 +179,16 @@ extension GameManager {
         
         // Only release once we've reached the corridor tile centre
         if row <= 11 && column == 14 && ghost.isAtTileCentre() {
-            ghost.ghostState = .wandering
+
+            ghost.ghostState = activeGhostState()
+
+            ghost.flashing = frightState && frightenedFlashing
+            ghost.flash = false
             
             if ghostExitQueue.first == ghost.ghost {
                 ghostExitQueue.removeFirst()
             }
-            
+
             return
         }
         
@@ -363,5 +401,449 @@ extension GameManager {
             }
         }
         ghost.move(deltaTime: dt)
+    }
+    
+    func scatterTarget(for ghost: GhostSprite) -> (x: Int, y: Int) {
+
+        switch ghost.ghost {
+
+        case .Pinky:
+            return (3, -2)
+
+        case .Blinky:
+            return (25, -2)
+
+        case .Inky:
+            return (25, 32)
+
+        case .Clyde:
+            return (3, 32)
+        }
+    }
+    
+    private func scatterDirection(
+        for ghost: GhostSprite
+    ) -> Direction? {
+
+        let tileWidth = ghost.frameSize.width
+        let tileHeight = ghost.frameSize.height
+
+        let column = Int(ghost.position.x / tileWidth)
+        let row = Int(ghost.position.y / tileHeight)
+
+        let target = scatterTarget(for: ghost)
+
+        let available = availableDirections(for: ghost)
+
+        guard !available.isEmpty else {
+            return nil
+        }
+
+        let reverse = reverseDirection(ghost.direction)
+
+        let options = available.filter {
+            $0 != reverse
+        }
+
+        // No alternative direction: continue straight
+        guard options.count > 1 else {
+            return options.first ?? available.first
+        }
+
+        let priority: [Direction] = [
+            .up, .left, .down, .right
+        ]
+
+        var bestDirection: Direction?
+        var shortestDistance = Int.max
+
+        for direction in priority {
+
+            guard options.contains(direction) else {
+                continue
+            }
+
+            var testX = column
+            var testY = row
+
+            switch direction {
+            case .up:    testY -= 1
+            case .down:  testY += 1
+            case .left:  testX -= 1
+            case .right: testX += 1
+            case .stop:  continue
+            }
+
+            let dx = target.x - testX
+            let dy = target.y - testY
+
+            let distance = dx * dx + dy * dy
+
+            if distance < shortestDistance {
+                shortestDistance = distance
+                bestDirection = direction
+            }
+        }
+
+        return bestDirection
+    }
+    
+    func ghostModeSchedule(
+        for level: Int
+    ) -> [GhostModePhase] {
+
+        let scatter1: TimeInterval = level >= 5 ? 5 : 7
+        let scatter2: TimeInterval = level >= 5 ? 5 : 7
+
+        let chase3: TimeInterval =
+            level == 1 ? 20 :
+            level <= 4 ? 1033 : 1037
+
+        let scatter4: TimeInterval =
+            level == 1 ? 5 : 1.0 / 60.0
+
+        return [
+            GhostModePhase(mode: .scatter, duration: scatter1),
+            GhostModePhase(mode: .chase, duration: 20),
+            GhostModePhase(mode: .scatter, duration: scatter2),
+            GhostModePhase(mode: .chase, duration: 20),
+            GhostModePhase(mode: .scatter, duration: 5),
+            GhostModePhase(mode: .chase, duration: chase3),
+            GhostModePhase(mode: .scatter, duration: scatter4),
+            GhostModePhase(mode: .chase, duration: nil)
+        ]
+    }
+    
+    func updateGhostMode(deltaTime dt: CGFloat) {
+
+        guard !frightState else {
+            return
+        }
+        
+        let schedule = ghostModeSchedule(for: level)
+
+        var remainingTime = TimeInterval(dt)
+
+        while remainingTime > 0 {
+
+            let phase = schedule[ghostModePhaseIndex]
+
+            // Permanent Chase phase
+            guard let duration = phase.duration else {
+                return
+            }
+
+            let timeRemaining = duration - ghostModeElapsed
+
+            if remainingTime < timeRemaining {
+                ghostModeElapsed += remainingTime
+                break
+            }
+
+            // Move into the next phase
+            remainingTime -= timeRemaining
+            ghostModeElapsed = 0
+
+            guard ghostModePhaseIndex + 1 < schedule.count else {
+                return
+            }
+
+            ghostModePhaseIndex += 1
+
+            let nextMode = schedule[ghostModePhaseIndex].mode
+
+            changeGhostMode(to: nextMode)
+        }
+    }
+    
+    func changeGhostMode(to mode: GhostMode) {
+
+        print("changeGhostMode from \(currentGhostMode) to \(mode)")
+        currentGhostMode = mode
+
+        for ghost in ghostSprites {
+
+            switch ghost.ghostState {
+
+            case .wandering, .chasing:
+
+                ghost.direction = reverseDirection(ghost.direction)
+
+                ghost.ghostState = mode == .scatter
+                    ? .wandering
+                    : .chasing
+            default:
+                // Don't disturb frightened, dead or house ghosts
+                break
+            }
+        }
+    }
+    
+    func restoreGhostMode() {
+
+        for ghost in ghostSprites {
+
+            guard ghost.ghostState == .scared else {
+                continue
+            }
+
+            ghost.flashing = false
+            ghost.flash = false
+
+            ghost.ghostState = currentGhostMode == .scatter
+                ? .wandering
+                : .chasing
+        }
+    }
+    
+    func startFrightenedMode() {
+
+        // Cancel any previous frightened timers
+        frightenedTask?.cancel()
+        flashingTask?.cancel()
+
+        frightState = true
+        ghostCaught = 0
+
+        setFrightTimeForLevel()
+
+        for ghost in ghostSprites {
+
+            switch ghost.ghostState {
+
+            case .wandering, .chasing:
+
+                ghost.ghostState = .scared
+                ghost.flashing = false
+                ghost.flash = false
+                ghost.direction = reverseDirection(ghost.direction)
+
+            default:
+                break
+            }
+        }
+
+        // Start flashing near the end
+        flashingTask = Task { @MainActor in
+            do {
+                try await Task.sleep(for: .seconds(flashingTime))
+            } catch {
+                return
+            }
+
+            guard frightState else { return }
+            frightenedFlashing = true
+
+            for ghost in ghostSprites {
+                if ghost.ghostState == .scared {
+                    ghost.flashing = true
+                }
+            }
+        }
+
+        // End frightened mode
+        frightenedTask = Task { @MainActor in
+            do {
+                try await Task.sleep(for: .seconds(totalTime))
+            } catch {
+                return
+            }
+
+            restoreGhostMode()
+
+            frightenedFlashing = false
+            frightState = false
+
+            flashingTask?.cancel()
+            flashingTask = nil
+            frightenedTask = nil
+        }
+    }
+    
+    func resetGhostModes() {
+
+        frightenedTask?.cancel()
+        flashingTask?.cancel()
+
+        frightenedTask = nil
+        flashingTask = nil
+
+        frightState = false
+
+        ghostModePhaseIndex = 0
+        ghostModeElapsed = 0
+
+        currentGhostMode = .scatter
+    }
+    
+    func activeGhostState() -> GhostState {
+
+        if frightState {
+            return .scared
+        }
+
+        switch currentGhostMode {
+        case .scatter:
+            return .wandering
+        case .chase:
+            return .chasing
+        }
+    }
+    
+    func chaseTarget(for ghost: GhostSprite) -> (x: Int, y: Int)? {
+
+        guard let pacMan = pacManSprite else {
+            return nil
+        }
+
+        let tileWidth = ghost.frameSize.width
+        let tileHeight = ghost.frameSize.height
+
+        let pacColumn = Int(pacMan.position.x / tileWidth)
+        let pacRow = Int(pacMan.position.y / tileHeight)
+
+        switch ghost.ghost {
+
+        case .Blinky:
+            // Directly targets Pac-Man
+            return (pacColumn, pacRow)
+
+        case .Pinky:
+            // Targets four tiles ahead of Pac-Man
+            var targetX = pacColumn
+            var targetY = pacRow
+
+            switch pacMan.direction {
+            case .up:
+                targetX -= 4
+                targetY -= 4
+            case .down:
+                targetY += 4
+            case .left:
+                targetX -= 4
+            case .right:
+                targetX += 4
+            case .stop:
+                break
+            }
+
+            return (targetX, targetY)
+
+        case .Inky:
+            // Two tiles ahead of Pac-Man
+            var pivotX = pacColumn
+            var pivotY = pacRow
+
+            switch pacMan.direction {
+            case .up:
+                pivotY -= 2
+            case .down:
+                pivotY += 2
+            case .left:
+                pivotX -= 2
+            case .right:
+                pivotX += 2
+            case .stop:
+                break
+            }
+
+            // Find Blinky's position
+            guard let blinky = ghostSprites.first(where: {
+                $0.ghost == .Blinky
+            }) else {
+                return (pacColumn, pacRow)
+            }
+
+            let blinkyX = Int(blinky.position.x / tileWidth)
+            let blinkyY = Int(blinky.position.y / tileHeight)
+
+            // Double the vector from Blinky to the pivot
+            let targetX = pivotX + (pivotX - blinkyX)
+            let targetY = pivotY + (pivotY - blinkyY)
+
+            return (targetX, targetY)
+
+        case .Clyde:
+            // Clyde chases until he is within eight tiles
+            let ghostColumn = Int(ghost.position.x / tileWidth)
+            let ghostRow = Int(ghost.position.y / tileHeight)
+
+            let dx = pacColumn - ghostColumn
+            let dy = pacRow - ghostRow
+
+            if dx * dx + dy * dy >= 64 {
+                return (pacColumn, pacRow)
+            } else {
+                return scatterTarget(for: ghost)
+            }
+        }
+
+    }
+    
+    func chaseDirection(
+        for ghost: GhostSprite
+    ) -> Direction? {
+
+        let tileWidth = ghost.frameSize.width
+        let tileHeight = ghost.frameSize.height
+
+        let column = Int(ghost.position.x / tileWidth)
+        let row = Int(ghost.position.y / tileHeight)
+
+        guard let target = chaseTarget(for: ghost) else {
+            return nil
+        }
+
+        let available = availableDirections(for: ghost)
+
+        guard !available.isEmpty else {
+            return nil
+        }
+
+        let reverse = reverseDirection(ghost.direction)
+
+        // Avoid reversing unless there is no alternative
+        let options = available.filter {
+            $0 != reverse
+        }
+
+        let candidates = options.isEmpty ? available : options
+
+        let priority: [Direction] = [
+            .up, .left, .down, .right
+        ]
+
+        var bestDirection: Direction?
+        var shortestDistance = Int.max
+
+        for direction in priority {
+
+            guard candidates.contains(direction) else {
+                continue
+            }
+
+            var testX = column
+            var testY = row
+
+            switch direction {
+            case .up:    testY -= 1
+            case .down:  testY += 1
+            case .left:  testX -= 1
+            case .right: testX += 1
+            case .stop:  continue
+            }
+
+            let dx = target.x - testX
+            let dy = target.y - testY
+
+            let distance = dx * dx + dy * dy
+
+            if distance < shortestDistance {
+                shortestDistance = distance
+                bestDirection = direction
+            }
+        }
+
+        return bestDirection
     }
 }
