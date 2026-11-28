@@ -15,10 +15,12 @@ final class PacManSprite:SwiftUISprite,Moveable,Animatable {
     var rightFrames: [UIImage] = []
     var downFrames: [UIImage] = []
     var upFrames: [UIImage] = []
+    var bigFrames: [UIImage] = []
     var lastDirection:Direction = .stop
     var lifeFrame:UIImage = UIImage()
     var caught = false
-    
+    var big = false
+
     init(xPos:Int, yPos:Int,tileSize:CGSize,gameSpeed:CGFloat) {
         super.init(xPos:xPos, yPos:yPos, frameSize:tileSize, gameSpeed: gameSpeed)
         
@@ -34,7 +36,7 @@ final class PacManSprite:SwiftUISprite,Moveable,Animatable {
         guard direction != .stop  else {return}
         let md = gameSpeed * speedMultiplier * dt
 
-        print("delta time \(dt) movedistance \(md) gameSpeed \(gameSpeed) speedMultiplier \(speedMultiplier)")
+//        print("delta time \(dt) movedistance \(md) gameSpeed \(gameSpeed) speedMultiplier \(speedMultiplier)")
         /// Here we now move our sprite. Each will have its own specific movement logic.
         if direction == .left {
             self.position.x -= md
@@ -122,7 +124,10 @@ final class PacManSprite:SwiftUISprite,Moveable,Animatable {
         animateCounter += 1
         if animateCounter == animationSpeed {
             animateCounter = 0
-
+            if big {
+                animateBig()
+                return
+            }
             if caught {
                 animateDead()
                 return
@@ -156,7 +161,21 @@ final class PacManSprite:SwiftUISprite,Moveable,Animatable {
         if currentAnimationFrame == 11 {
             currentAnimationFrame = 10
         }
-
+    }
+    func animateBig() {
+        currentFrame = bigFrames[currentAnimationFrame]
+        currentAnimationFrame += 1
+        if currentAnimationFrame == 3 {
+            currentAnimationFrame = 0
+        }
+    }
+    func setBig(){
+        big = true
+        frameSize.width = frameSize.width * 2
+        frameSize.height = frameSize.height * 2
+        direction = .right
+        position.x = position.x - 70
+        speedMultiplier = 0.90
     }
 
     func setImages() {
@@ -175,6 +194,10 @@ final class PacManSprite:SwiftUISprite,Moveable,Animatable {
         for x in 0..<11 {
             deadFrames.append(getTile(name: "DeadPacMan", xPos: x,width: 16,height: 16)!)
         }
+        for x in 0..<3 {
+            bigFrames.append(getTile(name: "BigPacMan", xPos: x,width: 32,height: 32)!)
+        }
+
     }
     
 }

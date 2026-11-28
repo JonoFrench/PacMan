@@ -61,3 +61,14 @@ struct TileView2: View {
             }
     }
 }
+
+struct ImageView: View {
+    @Environment(GameManager.self) var manager
+    @ObservedObject var ghost:GhostSprite
+    var body: some View {
+        Image(uiImage: ghost.secondFrame)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .frame(width: ghost.frameSize.width * 1.8, height: ghost.frameSize.height * 1.8)
+    }
+}

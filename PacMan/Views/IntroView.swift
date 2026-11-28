@@ -41,10 +41,10 @@ struct IntroView: View {
                         .frame(width: metrics.isPad ? 60 : 30, height: metrics.isPad ? 60 : 30)
                         .opacity(visibleItems >= 1 ? 1 : 0)
                     Text("- SHADOW ")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(.blinky)
                         .opacity(visibleItems >= 2 ? 1 : 0)
                     Text("\"BLINKY\"")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(.blinky)
                         .opacity(visibleItems >= 3 ? 1 : 0)
                 }
                 
@@ -65,10 +65,10 @@ struct IntroView: View {
                         .frame(width: metrics.isPad ? 60 : 30, height: metrics.isPad ? 60 : 30)
                        .opacity(visibleItems >= 7 ? 1 : 0)
                     Text("- BASHFUL ")
-                        .foregroundStyle(.cyan)
+                        .foregroundStyle(.inky)
                         .opacity(visibleItems >= 8 ? 1 : 0)
                     Text("\"INKY\"")
-                        .foregroundStyle(.cyan)
+                        .foregroundStyle(.inky)
                         .opacity(visibleItems >= 9 ? 1 : 0)
                 }
                 

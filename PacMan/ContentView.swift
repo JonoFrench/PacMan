@@ -17,6 +17,8 @@ struct ContentView: View {
                     IntroView()
                 } else if manager.gameState == .intro2 {
                     IntroView2()
+                } else if manager.gameState == .intermission {
+                    IntermissionView(ghost: manager.ghostSprites[0])
                 } else {
                     GameView()
                 }

@@ -111,6 +111,6 @@ final class SoundFX {
     func fruitSound() { playOnNewThread(SoundAsset.eatfruit) }
     func ghostSound() { playOnNewThread(SoundAsset.eatghost) }
     func extraSound() { playOnNewThread(SoundAsset.extrapac) }
-    func intermissionSound() { playOnNewThread(SoundAsset.intermission) }
+    func intermissionSound() { playOnNewThread(SoundAsset.intermission,loops: 1) }
     
 }

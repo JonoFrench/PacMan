@@ -38,11 +38,6 @@ class GameManager {
     var mapY = 0
     var gameSpeed: CGFloat = 0
     var pacManSprite:PacManSprite?
-    let randomChance: (Int) -> Bool = { probability in
-        Int.random(in: 0...100) < probability
-    }
-    let yesno: (Bool) -> String = { b in b ? "Yes" : "No" }
-    
     var ghostSprites:[GhostSprite] = []
     var tileSize = 0.0
     var lastTimestamp:CFTimeInterval = 0
@@ -92,6 +87,24 @@ class GameManager {
         " oooooooooooooooooooooooooo  ",
         "                             "]
     
+    //Level settings
+    let levelBonuses: [Int] = [100,300,500,500,700,700,1000,1000,2000,2000,3000,3000,5000]
+    
+    let speedForLevel: [CGFloat] = [0.8,0.9,0.9,0.9,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]
+    let ghostForLevel: [CGFloat] = [0.75,0.85,0.85,0.85,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95]
+    let dotForLevel: [CGFloat] = [0.71,0.79,0.79,0.87,0.87,0.87,0.87,0.87,0.87,0.87,0.87,0.87,0.87]
+    let tunnelForLevel: [CGFloat] = [0.40,0.45,0.45,0.45,0.50,0.50]
+    let frightPacForLevel: [CGFloat] = [0.9,0.95,0.95,0.95,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]
+    let frightDotForLevel: [CGFloat] = [0.8,0.9,0.9,0.9,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]
+    let frightGhostForLevel: [CGFloat] = [0.5,0.55,0.55,0.55,0.60,0.60,0.60,0.60]
+    
+    // Scared ghost chase mode
+    var frightState = false
+    var flashingTime = 0.0
+    var totalTime = 0.0
+    let timeForLevel: [Int] = [6,5,4,3,2,5,2,2,1,5,2,1,1,3,1,1,0,1,0,0,0]
+    let flashForLevel: [Int] = [5,5,5,5,5,5,5,5,3,5,5,3,3,5,3,3,0,3,0,0,0]
+    
     var workingMap:[String] = []
     // MARK: - Movement
     
@@ -114,9 +127,15 @@ class GameManager {
     var ghostCaught = 0
     var pauseAction = false
     
+    //MARK: - Intro
+    
     var introAnimation = false
     var introDot = true
-
+    
+    //MARK: - Intermission
+    
+    var intermission:Intermission = .two
+    
     init() {
         ///Here we go, lets have a nice DisplayLink to update our model with the screen refresh.
         let displayLink:CADisplayLink = CADisplayLink(target: self, selector: #selector(refreshModel))
@@ -128,18 +147,16 @@ class GameManager {
     
     ///Start the game, make sure everything is set to go in here.
     func start() {
-        fx.startSound()
-        gameState = .starting
-        Task { @MainActor in
-            try? await Task.sleep(for: .seconds(GameConstants.Delay.Start))
-            gameState = .starting2
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(GameConstants.Delay.Start2))
-                gameState = .playing
-            }
-            
-        }
-        
+                fx.startSound()
+                gameState = .starting
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(GameConstants.Delay.Start))
+                    gameState = .starting2
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(GameConstants.Delay.Start2))
+                        gameState = .playing
+                    }
+                }
     }
     
     func gameOver() {
@@ -149,107 +166,18 @@ class GameManager {
             gameState = .intro
         }
     }
-    ///Add to the score
-    func addScore(newScore:Int) {
-        score += newScore
-        ///Extra life every 5000 points
-        if score >= nextLifeScore {
-            lives += 1
-            nextLifeScore += 10000
-            fx.extraSound()
-        }
-    }
-    
-    func introSprites(){
-        if let metrics {
-            introDot = true
-            pacManSprite = PacManSprite(xPos: 32,yPos: metrics.isPad ? 27 : 39, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed)
-            pacManSprite?.direction = .left
-            pacManSprite?.speedMultiplier = 0.8
-            ghostSprites.removeAll()
-            ghostSprites.append(GhostSprite(xPos: 34, yPos: metrics.isPad ? 27 : 39, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Blinky))
-            ghostSprites.append(GhostSprite(xPos: 36, yPos: metrics.isPad ? 27 : 39, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Clyde))
-            ghostSprites.append(GhostSprite(xPos: 38, yPos: metrics.isPad ? 27 : 39, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Inky))
-            ghostSprites.append(GhostSprite(xPos: 40, yPos: metrics.isPad ? 27 : 39, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Pinky))
-            for ghost in ghostSprites {
-                ghost.ghostState = .wandering
-                ghost.direction = .left
-                ghost.speedMultiplier = 0.8
-                
-            }
-            fruitCollected.removeAll()
-            fruitCollected.append(.cherry)
-            workingMap = map
-        }
-    }
-    
-    func introSprites2() {
-        ghostSprites.removeAll()
-        fruitCollected.removeAll()
-        fruitCollected = []
-        pacManSprite = PacManSprite(xPos: 14,yPos: 23, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed)
-        ghostSprites.append(GhostSprite(xPos: 14, yPos: 11, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Blinky))
-        ghostSprites.append(GhostSprite(xPos: 12, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Clyde))
-        ghostSprites.append(GhostSprite(xPos: 14, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Inky))
-        ghostSprites.append(GhostSprite(xPos: 16, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Pinky))
-        ghostSprites[0].ghostState = .wandering
-        ghostExitQueue = [
-            .Inky,
-            .Clyde,
-            .Pinky
-        ]
-        workingMap = map
-        lives = 3
-        score = 0
-        nextLifeScore = 10000
-        level = 0
-        dotsCollected = 0
-        energisersEaten = 0
-        ghostCaught = 0
-        pauseAction = false
-        showFruit = false
-        fruitCollected.append(fruitForLevel())
-        setSpeedForLevel()
-        pacManSprite?.direction = .right
-        moveDirection = .right
-        requestedDirection = .up
-
-    }
     
     ///Restart after life loss
     func restart() {
-        pacManSprite = PacManSprite(xPos: 14,yPos: 23, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed)
-        ghostSprites.removeAll()
-        ghostSprites.append(GhostSprite(xPos: 14, yPos: 11, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Blinky))
-        ghostSprites.append(GhostSprite(xPos: 12, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Clyde))
-        ghostSprites.append(GhostSprite(xPos: 14, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Inky))
-        ghostSprites.append(GhostSprite(xPos: 16, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Pinky))
-        ghostSprites[0].ghostState = .wandering
-        ghostExitQueue = [
-            .Inky,
-            .Clyde,
-            .Pinky
-        ]
-        
+        setSprites()
         start()
     }
     
     ///Reseting the game to go again.
     func reset() {
-        ghostSprites.removeAll()
         fruitCollected.removeAll()
         fruitCollected = []
-        pacManSprite = PacManSprite(xPos: 14,yPos: 23, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed)
-        ghostSprites.append(GhostSprite(xPos: 14, yPos: 11, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Blinky))
-        ghostSprites.append(GhostSprite(xPos: 12, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Clyde))
-        ghostSprites.append(GhostSprite(xPos: 14, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Inky))
-        ghostSprites.append(GhostSprite(xPos: 16, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Pinky))
-        ghostSprites[0].ghostState = .wandering
-        ghostExitQueue = [
-            .Inky,
-            .Clyde,
-            .Pinky
-        ]
+        setSprites()
         workingMap = map
         lives = 5
         score = 0
@@ -265,7 +193,20 @@ class GameManager {
         start()
     }
     
-    var frightState = false
+    func setSprites() {
+        ghostSprites.removeAll()
+        pacManSprite = PacManSprite(xPos: 14,yPos: 23, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed)
+        ghostSprites.append(GhostSprite(xPos: 14, yPos: 11, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Blinky))
+        ghostSprites.append(GhostSprite(xPos: 12, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Clyde))
+        ghostSprites.append(GhostSprite(xPos: 14, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Inky))
+        ghostSprites.append(GhostSprite(xPos: 16, yPos: 14, tileSize: CGSize(width: self.tileSize, height: self.tileSize), gameSpeed: gameSpeed, ghostType: .Pinky))
+        ghostSprites[0].ghostState = .wandering
+        ghostExitQueue = [
+            .Inky,
+            .Clyde,
+            .Pinky
+        ]
+    }
     
     func eatDot() {
         guard let pacManSprite else { return }
@@ -291,7 +232,7 @@ class GameManager {
             fx.chompSound()
             if dotsCollected == 240 && energisersEaten == 4 {
                 //Ok so next level
-                nextLevel()
+                checkLevel()
             }
         }
         if characters[column] == "*" {
@@ -302,7 +243,7 @@ class GameManager {
             workingMap[row] = String(characters)
             if dotsCollected == 240 && energisersEaten == 4 {
                 //Ok so next level
-                nextLevel()
+                checkLevel()
             }
             
             //            fx.intermissionSound()
@@ -338,14 +279,34 @@ class GameManager {
         }
     }
     
-    func nextLevel() {
+    func checkLevel(){
         pauseAction = true
+        level += 1
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(1.5))
             gameState = .nextlevel
-            level += 1
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(3))
+                
+                if level == 2 {
+                    intermission = .two
+                }
+                else if level == 5 {
+                    intermission = .five
+                }
+                else if level == 9 {
+                    intermission = .nine
+                } else {
+                    goNextLevel()
+                    return
+                }
+                setUp(intermission: intermission)
+                gameState = .intermission
+            }
+        }
+    }
+    
+    func goNextLevel() {
                 pauseAction = false
                 dotsCollected = 0
                 energisersEaten = 0
@@ -353,11 +314,9 @@ class GameManager {
                 fruitCollected.append(fruitForLevel())
                 setSpeedForLevel()
                 restart()
-            }
-        }
     }
     
-    private func updatePacMan(deltaTime dt: CGFloat) {
+    func updatePacMan(deltaTime dt: CGFloat) {
         
         guard gameState == .playing || gameState == .intro2,
               let pacManSprite else { return }
@@ -368,7 +327,7 @@ class GameManager {
         }
     }
     
-    private func handleJoyPad() {
+    func handleJoyPad() {
         
         guard gameState == .playing || gameState == .intro2,
               let pacManSprite else { return }
@@ -577,53 +536,15 @@ class GameManager {
         dt = CGFloat(link.timestamp - lastTimestamp)
         lastTimestamp = link.timestamp
         
-        if gameState == .intro {
-            if introAnimation {
-                if let pacManSprite {
-                    if !pauseAction {
-                        pacManSprite.move(deltaTime: dt)
-                        pacManSprite.animate()
-                        
-                        for ghost in ghostSprites {
-                            ghost.move(deltaTime: dt)
-                            ghost.animate()
-                        }
-                        
-                        if pacManSprite.position.x <= 50 {
-                            introDot = false
-                            pacManSprite.direction = .right
-                            for ghost in ghostSprites {
-                                ghost.direction = .right
-                                ghost.ghostState = .scared
-                                ghost.speedMultiplier = 0.50
-                            }
-                        }
-                        if pacManSprite.position.x >= metrics!.width + (metrics!.isPad ? 150 : 100) {
-                            introSprites2()
-                            gameState = .intro2
-                        }
-                        checkPacManEatingIntroGhosts()
-                    }
-                }
-            }
+        if gameState == .intro && introAnimation {
+            introRefresh()
         }
         if gameState == .intro2 {
-            handleJoyPad()
-            eatDot()
-            setSpeedForLevel()
-            setGhostSpeedForLevel()
-            updatePacMan(deltaTime: dt)
-            updateGhosts(deltaTime: dt)
-            checkPacManEatingGhosts()
-            checkCollectFruit()
-
-            if let pacManSprite {
-                pacManSprite.animate()
-            }
-            for ghost in ghostSprites {
-                ghost.animate()
-            }
-
+            introRefresh2()
+        }
+        
+        if gameState == .intermission {
+            intermissionRefresh()
         }
         
         if gameState == .playing {
@@ -635,7 +556,7 @@ class GameManager {
                 updatePacMan(deltaTime: dt)
                 updateGhosts(deltaTime: dt)
                 checkPacManEatingGhosts()
-                checkPacManCaught()
+//                checkPacManCaught()
                 checkCollectFruit()
             }
             if let pacManSprite {
@@ -682,100 +603,4 @@ class GameManager {
         }
     }
     
-    func checkCollectFruit() {
-        if showFruit, let pacManSprite {
-            if pacManSprite.circlesIntersect(center: CGPoint(x: metrics!.centerX, y: tileSize * 17.5), diameter: 12) {
-                showFruit = false
-                addScore(newScore: bonusForLevel())
-                fx.fruitSound()
-            }
-        } else if dotsCollected == 70 || dotsCollected == 170 {
-            showFruit = true
-            selectedFruit = fruitForLevel()
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(GameConstants.Time.ShowFruit))
-                showFruit = false
-            }
-        }
-    }
-    
-    func fruitForLevel() -> Fruit {
-        if level > levelFruit.count { return .key }
-        return levelFruit[level]
-    }
-    
-    let levelBonuses: [Int] = [100,300,500,500,700,700,1000,1000,2000,2000,3000,3000,5000]
-
-    func bonusForLevel() -> Int {
-        if level >= 12 { return 5000 }
-        return levelBonuses[level]
-    }
-    let speedForLevel: [CGFloat] = [0.8,0.9,0.9,0.9,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]
-    let ghostForLevel: [CGFloat] = [0.75,0.85,0.85,0.85,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95]
-    let dotForLevel: [CGFloat] = [0.71,0.79,0.79,0.87,0.87,0.87,0.87,0.87,0.87,0.87,0.87,0.87,0.87]
-    let tunnelForLevel: [CGFloat] = [0.40,0.45,0.45,0.45,0.50,0.50]
-    let frightPacForLevel: [CGFloat] = [0.9,0.95,0.95,0.95,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]
-    let frightDotForLevel: [CGFloat] = [0.8,0.9,0.9,0.9,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]
-    let frightGhostForLevel: [CGFloat] = [0.5,0.55,0.55,0.55,0.60,0.60,0.60,0.60]
-
-    func setSpeedForLevel() {
-        if let pacManSprite {
-            if frightState {
-                pacManSprite.speedMultiplier = level < 5 ? frightPacForLevel[level] : 1.0
-            }
-            if level >= 20 {
-                pacManSprite.speedMultiplier = dotEaten ? 0.79 : 0.9
-                dotEaten = false
-                return
-            }
-            if level >= 4 {
-                pacManSprite.speedMultiplier = dotEaten ? 0.87 : 1.0
-                dotEaten = false
-                return
-            }
-            if dotEaten {
-                pacManSprite.speedMultiplier = dotForLevel[level]
-                dotEaten = false
-            } else {
-                pacManSprite.speedMultiplier = speedForLevel[level]
-            }
-        }
-    }
-    
-    func setGhostSpeedForLevel() {
-        for ghost in ghostSprites {
-            if ghost.ghostState == .dead {
-                ghost.speedMultiplier = 1.25
-                continue
-            }
-        let column = Int(ghost.position.x / tileSize)
-        let row = Int(ghost.position.y / tileSize)
-            //is in the tunnel?
-            let isInTunnel = row == GameConstants.Screen.TunnelRow && ((0...5).contains(column) || (22...28).contains(column))
-            if isInTunnel {
-                if level < 5 { ghost.speedMultiplier = tunnelForLevel[level] } else {
-                    ghost.speedMultiplier = 0.50
-                }
-                continue
-            }
-            if level < 5 {
-                ghost.speedMultiplier = frightState ? frightGhostForLevel[level] : ghostForLevel[level]
-            } else {
-                ghost.speedMultiplier = frightState ? 0.60 : 0.95
-            }
-        }
-        
-    }
-    
-    var flashingTime = 0.0
-    var totalTime = 0.0
-    let timeForLevel: [Int] = [6,5,4,3,2,5,2,2,1,5,2,1,1,3,1,1,0,1,0,0,0]
-    let flashForLevel: [Int] = [5,5,5,5,5,5,5,5,3,5,5,3,3,5,3,3,0,3,0,0,0]
-
-    func setFrightTimeForLevel() {
-        
-        totalTime = level < 18 ? CGFloat(timeForLevel[level]) : 0.0
-        flashingTime = totalTime - (CGFloat(flashForLevel[level]) * (4.0 * 0.16))
-        print("totalTime \(totalTime) flashingTime \(flashingTime)")
-    }
 }

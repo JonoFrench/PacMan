@@ -34,3 +34,26 @@ struct staticGhostView: View {
         }
     }
 }
+
+struct DoubleGhostView: View {
+    @Environment(\.layoutMetrics) private var metrics
+    @ObservedObject var ghost:GhostSprite
+    var body: some View {
+        ZStack {
+//            HStack(spacing: -(ghost.frameSize.width / 2)) {
+                HStack(spacing: 0) {
+                Image(uiImage: ghost.currentFrame)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: ghost.frameSize.width * 1.8, height: ghost.frameSize.height * 1.8)
+                Image(uiImage: ghost.secondFrame)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: ghost.frameSize.width * 1.8, height: ghost.frameSize.height * 1.8)
+            }
+            .allowsHitTesting(false)
+            .frame(width: (ghost.frameSize.width * 1.8) * 2, height: ghost.frameSize.height * 1.8)
+        }.onAppear {
+        }
+    }
+}

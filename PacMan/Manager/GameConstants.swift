@@ -27,6 +27,11 @@ public enum Direction {
 public enum Fruit:Int, CaseIterable {
     case cherry = 0,strawberry,peach,apple,grape,galaxian,bell,key
 }
+
+public enum Intermission {
+    case two,five,nine
+}
+
 public enum GameConstants {
     
     public enum Game {
